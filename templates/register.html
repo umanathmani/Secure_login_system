@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SecureAuth | Create Account</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <div class="background"></div>
+
+    <div class="login-container">
+
+        <!-- Brand -->
+        <div class="brand">
+
+            <div class="brand-icon">◈</div>
+
+            <h1>
+                SECURE<span>AUTH</span>
+            </h1>
+
+            <p>SYSTEM ONLINE</p>
+
+        </div>
+
+
+        <!-- Register Card -->
+        <div class="login-card">
+
+            <h2>Create Account</h2>
+
+            <p class="subtitle">
+                Create your secure authentication account
+            </p>
+
+
+            <!-- Registration Form -->
+            <form method="POST" action="/register">
+
+                <!-- Username -->
+                <label>Username</label>
+
+                <input
+                    type="text"
+                    name="username"
+                    placeholder="Choose a username"
+                    required
+                >
+
+
+                <!-- Email -->
+                <label>Email Address</label>
+
+                <input
+                    type="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    required
+                >
+
+
+                <!-- Password -->
+                <label>Password</label>
+
+                <input
+                    type="password"
+                    name="password"
+                    placeholder="Create a strong password"
+                    required
+                >
+
+
+                <!-- Confirm Password -->
+                <label>Confirm Password</label>
+
+                <input
+                    type="password"
+                    name="confirm_password"
+                    placeholder="Confirm your password"
+                    required
+                >
+
+
+                <!-- Submit -->
+                <button type="submit">
+                    CREATE ACCOUNT
+                </button>
+
+            </form>
+
+
+            <!-- Security Divider -->
+            <div class="divider">
+                <span>SECURITY</span>
+            </div>
+
+
+            <p class="protected">
+                🔒 Your password will be securely protected
+            </p>
+
+
+            <!-- Login Link -->
+            <p class="register">
+
+                Already have an account?
+
+                <a href="/">
+                    Sign In
+                </a>
+
+            </p>
+
+        </div>
+
+    </div>
+
+</body>
+</html>

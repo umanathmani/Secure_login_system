@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Login System - Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #080d16;
+            color: #e8eef7;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 92%;
+            max-width: 1200px;
+            margin: auto;
+            padding: 30px 0 50px;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 22px 28px;
+            background: #0e1624;
+            border: 1px solid #1d2a3d;
+            border-radius: 14px;
+            margin-bottom: 25px;
+        }
+
+        .brand h1 {
+            font-size: 25px;
+            letter-spacing: 1px;
+        }
+
+        .brand p {
+            color: #8fa1b8;
+            font-size: 13px;
+            margin-top: 6px;
+        }
+
+        .verified {
+            padding: 9px 16px;
+            border-radius: 20px;
+            background: rgba(40, 200, 120, 0.12);
+            border: 1px solid rgba(40, 200, 120, 0.35);
+            color: #45e59a;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        /* SECTION */
+        .section {
+            background: #0e1624;
+            border: 1px solid #1d2a3d;
+            border-radius: 14px;
+            padding: 25px;
+            margin-bottom: 22px;
+        }
+
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title h2 {
+            font-size: 18px;
+        }
+
+        .section-title span {
+            color: #71839b;
+            font-size: 12px;
+        }
+
+        /* CURRENT LOGIN */
+        .current-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+
+        .info-box {
+            background: #0a111d;
+            border: 1px solid #1a2738;
+            border-radius: 10px;
+            padding: 17px;
+        }
+
+        .label {
+            color: #71839b;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 8px;
+        }
+
+        .value {
+            font-size: 14px;
+            color: #edf3fa;
+            word-break: break-word;
+        }
+
+        /* RISK */
+        .risk-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 2fr;
+            gap: 14px;
+        }
+
+        .risk-card {
+            background: #0a111d;
+            border: 1px solid #1a2738;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .risk-score {
+            font-size: 32px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .risk-level {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 6px 12px;
+            border-radius: 15px;
+            background: rgba(40, 200, 120, 0.12);
+            color: #45e59a;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .reason-list {
+            margin-top: 10px;
+            padding-left: 18px;
+            color: #aebbd0;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        /* SESSION */
+        .session-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #0a111d;
+            border: 1px solid #1a2738;
+            border-radius: 10px;
+            padding: 18px 20px;
+        }
+
+        .session-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .session-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(40, 200, 120, 0.12);
+            color: #45e59a;
+            font-size: 18px;
+        }
+
+        .session-title {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .session-text {
+            color: #71839b;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .protected {
+            color: #45e59a;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        /* HISTORY TABLE */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid #1a2738;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 750px;
+        }
+
+        th {
+            background: #0a111d;
+            color: #71839b;
+            text-align: left;
+            padding: 14px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        td {
+            padding: 15px 14px;
+            border-top: 1px solid #182536;
+            font-size: 13px;
+            color: #dce5f0;
+        }
+
+        tr:hover td {
+            background: #101a29;
+        }
+
+        .status-success {
+            color: #45e59a;
+            font-weight: bold;
+        }
+
+        .status-failed {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        /* LOGOUT */
+        .bottom {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+
+        .logout {
+            text-decoration: none;
+            color: #ff7474;
+            border: 1px solid rgba(255, 100, 100, 0.3);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: 0.2s;
+        }
+
+        .logout:hover {
+            background: rgba(255, 100, 100, 0.08);
+        }
+
+        /* MOBILE */
+        @media (max-width: 750px) {
+            .container {
+                width: 95%;
+                padding-top: 15px;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .current-grid,
+            .risk-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .session-box {
+                align-items: flex-start;
+                gap: 15px;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="brand">
+            <h1>SECURE LOGIN SYSTEM</h1>
+            <p>Real-Time Authentication Security Dashboard</p>
+        </div>
+
+        <div class="verified">
+            ● AUTHENTICATION VERIFIED
+        </div>
+    </div>
+
+
+    <!-- 1. CURRENT LOGIN -->
+    <div class="section">
+
+        <div class="section-title">
+            <h2>Current Login</h2>
+            <span>Active authentication details</span>
+        </div>
+
+        <div class="current-grid">
+
+            <div class="info-box">
+                <div class="label">Username</div>
+                <div class="value">{{ username }}</div>
+            </div>
+
+            <div class="info-box">
+                <div class="label">IP Address</div>
+                <div class="value">{{ ip }}</div>
+            </div>
+
+            <div class="info-box">
+                <div class="label">Login Time</div>
+                <div class="value">{{ login_time }}</div>
+            </div>
+
+            <div class="info-box">
+                <div class="label">Device / Browser</div>
+                <div class="value">{{ device }}</div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- 2. RISK ASSESSMENT -->
+    <div class="section">
+
+        <div class="section-title">
+            <h2>Security & Risk Assessment</h2>
+            <span>Login behavior analysis</span>
+        </div>
+
+        <div class="risk-grid">
+
+            <div class="risk-card">
+                <div class="label">Risk Score</div>
+
+                <div class="risk-score">
+                    {{ risk.score }}
+                </div>
+            </div>
+
+            <div class="risk-card">
+                <div class="label">Risk Level</div>
+
+                <div class="risk-level">
+                    {{ risk.level }}
+                </div>
+            </div>
+
+            <div class="risk-card">
+                <div class="label">Security Analysis</div>
+
+                {% if risk.reasons %}
+                    <ul class="reason-list">
+                        {% for reason in risk.reasons %}
+                            <li>{{ reason }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="value" style="margin-top:10px;">
+                        No suspicious activity detected.
+                    </div>
+                {% endif %}
+
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- 3. SESSION SECURITY -->
+    <div class="section">
+
+        <div class="section-title">
+            <h2>Session Security</h2>
+            <span>Current session status</span>
+        </div>
+
+        <div class="session-box">
+
+            <div class="session-left">
+
+                <div class="session-icon">
+                    ✓
+                </div>
+
+                <div>
+                    <div class="session-title">
+                        Current Session
+                    </div>
+
+                    <div class="session-text">
+                        Your authentication session is active and protected.
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="protected">
+                SESSION PROTECTED
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- 4. RECENT LOGIN HISTORY -->
+    <div class="section">
+
+        <div class="section-title">
+            <h2>Recent Login History</h2>
+            <span>Latest authentication activity</span>
+        </div>
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Login Time</th>
+                        <th>IP Address</th>
+                        <th>Device / Browser</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% if history %}
+
+                    {% for row in history %}
+
+                    <tr>
+
+                        <td>
+                            {{ row[4] }}
+                        </td>
+
+                        <td>
+                            {{ row[1] }}
+                        </td>
+
+                        <td>
+                            {{ row[2] }}
+                        </td>
+
+                        <td>
+                            {% if row[3] == "Success" %}
+                                <span class="status-success">
+                                    ● SUCCESS
+                                </span>
+                            {% else %}
+                                <span class="status-failed">
+                                    ● FAILED
+                                </span>
+                            {% endif %}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <tr>
+                        <td colspan="4" style="text-align:center; color:#71839b;">
+                            No login history available.
+                        </td>
+                    </tr>
+
+                {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <!-- LOGOUT -->
+    <div class="bottom">
+
+        <a href="{{ url_for('logout') }}" class="logout">
+            Logout
+        </a>
+
+    </div>
+
+</div>
+
+</body>
+</html>

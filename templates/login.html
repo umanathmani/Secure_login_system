@@ -1,0 +1,229 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Login System</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #050b18;
+            color: #e8eef8;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 430px;
+            padding: 38px;
+            background: #0b1222;
+            border: 1px solid #202c40;
+            border-radius: 18px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        .logo {
+            width: 54px;
+            height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            border-radius: 14px;
+            background: rgba(0, 220, 170, 0.12);
+            border: 1px solid rgba(0, 220, 170, 0.3);
+            color: #00e0ad;
+            font-size: 26px;
+        }
+
+        .eyebrow {
+            color: #00dca8;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            font-size: 29px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #91a1b8;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 9px;
+            color: #c8d3e3;
+            font-size: 13px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px 15px;
+            background: #070d19;
+            border: 1px solid #263349;
+            border-radius: 9px;
+            outline: none;
+            color: #f1f5fb;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        input::placeholder {
+            color: #62728a;
+        }
+
+        input:focus {
+            border-color: #00dca8;
+            box-shadow: 0 0 0 3px rgba(0, 220, 168, 0.08);
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 5px;
+            border: none;
+            border-radius: 9px;
+            background: #00dca8;
+            color: #04130f;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .login-button:hover {
+            background: #00f0b8;
+            transform: translateY(-1px);
+        }
+
+        .security-note {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 23px;
+            color: #8fa1b8;
+            font-size: 12px;
+        }
+
+        .security-icon {
+            color: #00dca8;
+        }
+
+        .register-link {
+            margin-top: 25px;
+            padding-top: 22px;
+            border-top: 1px solid #202c40;
+            text-align: center;
+            color: #91a1b8;
+            font-size: 13px;
+        }
+
+        .register-link a {
+            color: #00dca8;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 27px 22px;
+            }
+
+            h1 {
+                font-size: 25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="login-container">
+
+        <div class="logo">🔐</div>
+
+        <p class="eyebrow">SECURE AUTHENTICATION</p>
+
+        <h1>Welcome back</h1>
+
+        <p class="subtitle">
+            Sign in to your account to access your
+            secure dashboard and login risk analysis.
+        </p>
+
+        <form action="/login" method="POST">
+
+            <div class="form-group">
+                <label for="username">Username or Email</label>
+
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    placeholder="Enter your username or email"
+                    autocomplete="username"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    required
+                >
+            </div>
+
+            <button type="submit" class="login-button">
+                Sign In Securely →
+            </button>
+
+        </form>
+
+        <div class="security-note">
+            <span class="security-icon">✓</span>
+            Protected with password hashing
+        </div>
+
+        <div class="register-link">
+            Don't have an account?
+            <a href="/register">Create account</a>
+        </div>
+
+    </main>
+
+</body>
+</html>
