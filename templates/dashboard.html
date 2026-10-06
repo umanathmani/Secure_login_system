@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Secure Login System - Dashboard</title>
 
     <style>
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -13,410 +16,737 @@
         }
 
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #080d16;
-            color: #e8eef7;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background:
+                radial-gradient(
+                    circle at top,
+                    #14213d,
+                    #080d18 55%,
+                    #05070c
+                );
+            color: #ffffff;
             min-height: 100vh;
+            padding: 30px;
         }
 
         .container {
-            width: 92%;
-            max-width: 1200px;
+            max-width: 1250px;
             margin: auto;
-            padding: 30px 0 50px;
         }
 
-        /* HEADER */
+        /* ================= HEADER ================= */
+
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 22px 28px;
-            background: #0e1624;
-            border: 1px solid #1d2a3d;
-            border-radius: 14px;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
         }
 
-        .brand h1 {
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            font-size: 30px;
+        }
+
+        .brand-title {
             font-size: 25px;
+            font-weight: 800;
             letter-spacing: 1px;
         }
 
-        .brand p {
-            color: #8fa1b8;
-            font-size: 13px;
-            margin-top: 6px;
-        }
-
-        .verified {
-            padding: 9px 16px;
-            border-radius: 20px;
-            background: rgba(40, 200, 120, 0.12);
-            border: 1px solid rgba(40, 200, 120, 0.35);
-            color: #45e59a;
-            font-size: 13px;
-            font-weight: bold;
-        }
-
-        /* SECTION */
-        .section {
-            background: #0e1624;
-            border: 1px solid #1d2a3d;
-            border-radius: 14px;
-            padding: 25px;
-            margin-bottom: 22px;
-        }
-
-        .section-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .section-title h2 {
-            font-size: 18px;
-        }
-
-        .section-title span {
-            color: #71839b;
-            font-size: 12px;
-        }
-
-        /* CURRENT LOGIN */
-        .current-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 14px;
-        }
-
-        .info-box {
-            background: #0a111d;
-            border: 1px solid #1a2738;
-            border-radius: 10px;
-            padding: 17px;
-        }
-
-        .label {
-            color: #71839b;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-bottom: 8px;
-        }
-
-        .value {
+        .brand-subtitle {
+            color: #9da8bb;
             font-size: 14px;
-            color: #edf3fa;
-            word-break: break-word;
-        }
-
-        /* RISK */
-        .risk-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 2fr;
-            gap: 14px;
-        }
-
-        .risk-card {
-            background: #0a111d;
-            border: 1px solid #1a2738;
-            border-radius: 10px;
-            padding: 20px;
-        }
-
-        .risk-score {
-            font-size: 32px;
-            font-weight: bold;
-            margin-top: 5px;
-        }
-
-        .risk-level {
-            display: inline-block;
-            margin-top: 8px;
-            padding: 6px 12px;
-            border-radius: 15px;
-            background: rgba(40, 200, 120, 0.12);
-            color: #45e59a;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .reason-list {
-            margin-top: 10px;
-            padding-left: 18px;
-            color: #aebbd0;
-            font-size: 13px;
-            line-height: 1.8;
-        }
-
-        /* SESSION */
-        .session-box {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #0a111d;
-            border: 1px solid #1a2738;
-            border-radius: 10px;
-            padding: 18px 20px;
-        }
-
-        .session-left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .session-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(40, 200, 120, 0.12);
-            color: #45e59a;
-            font-size: 18px;
-        }
-
-        .session-title {
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .session-text {
-            color: #71839b;
-            font-size: 12px;
             margin-top: 4px;
-        }
-
-        .protected {
-            color: #45e59a;
-            font-size: 13px;
-            font-weight: bold;
-        }
-
-        /* HISTORY TABLE */
-        .table-wrapper {
-            overflow-x: auto;
-            border-radius: 10px;
-            border: 1px solid #1a2738;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 750px;
-        }
-
-        th {
-            background: #0a111d;
-            color: #71839b;
-            text-align: left;
-            padding: 14px;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-        }
-
-        td {
-            padding: 15px 14px;
-            border-top: 1px solid #182536;
-            font-size: 13px;
-            color: #dce5f0;
-        }
-
-        tr:hover td {
-            background: #101a29;
-        }
-
-        .status-success {
-            color: #45e59a;
-            font-weight: bold;
-        }
-
-        .status-failed {
-            color: #ff6b6b;
-            font-weight: bold;
-        }
-
-        /* LOGOUT */
-        .bottom {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 25px;
         }
 
         .logout {
             text-decoration: none;
-            color: #ff7474;
-            border: 1px solid rgba(255, 100, 100, 0.3);
-            padding: 10px 20px;
+            color: #ffffff;
+            background: #1b263b;
+            border: 1px solid #33415c;
+            padding: 10px 18px;
             border-radius: 8px;
-            font-size: 13px;
+            font-weight: 600;
             transition: 0.2s;
         }
 
         .logout:hover {
-            background: rgba(255, 100, 100, 0.08);
+            background: #263653;
         }
 
-        /* MOBILE */
-        @media (max-width: 750px) {
-            .container {
-                width: 95%;
-                padding-top: 15px;
+        /* ================= VERIFIED ================= */
+
+        .verified {
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(0, 224, 173, 0.14),
+                    rgba(0, 224, 173, 0.04)
+                );
+
+            border: 1px solid rgba(0, 224, 173, 0.35);
+            border-radius: 14px;
+            padding: 22px;
+            margin-bottom: 25px;
+        }
+
+        .verified-title {
+            color: #00e0ad;
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 7px;
+        }
+
+        .verified-text {
+            color: #aeb8c9;
+            font-size: 14px;
+        }
+
+        /* ================= GRID ================= */
+
+        .grid {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(350px, 1fr)
+                );
+
+            gap: 22px;
+            margin-bottom: 22px;
+        }
+
+        /* ================= CARD ================= */
+
+        .card {
+            background: rgba(13, 20, 34, 0.92);
+            border: 1px solid #202c42;
+            border-radius: 14px;
+            padding: 24px;
+
+            box-shadow:
+                0 15px 35px rgba(0, 0, 0, 0.25);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 5px;
+        }
+
+        .card-subtitle {
+            color: #8793a8;
+            font-size: 13px;
+            margin-bottom: 22px;
+        }
+
+        /* ================= INFO ROW ================= */
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+
+            gap: 20px;
+
+            padding: 13px 0;
+
+            border-bottom:
+                1px solid #1d2738;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #8995aa;
+            font-size: 13px;
+            min-width: 120px;
+        }
+
+        .info-value {
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 700;
+
+            text-align: right;
+
+            max-width: 70%;
+
+            word-break: break-word;
+        }
+
+        /* ================= DEVICE STATUS ================= */
+
+        .device-new {
+            color: #ffcc66;
+        }
+
+        .device-recognized {
+            color: #00e0ad;
+        }
+
+        /* ================= RISK ================= */
+
+        .risk-container {
+            display: flex;
+            align-items: center;
+
+            gap: 25px;
+
+            margin-bottom: 22px;
+        }
+
+        .risk-score {
+            width: 100px;
+            height: 100px;
+
+            border-radius: 50%;
+
+            border: 4px solid #00e0ad;
+
+            display: flex;
+            flex-direction: column;
+
+            justify-content: center;
+            align-items: center;
+        }
+
+        .risk-number {
+            font-size: 30px;
+            font-weight: 800;
+        }
+
+        .risk-label {
+            color: #8793a8;
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+
+        .risk-level {
+            color: #00e0ad;
+            font-size: 20px;
+            font-weight: 800;
+
+            margin-bottom: 8px;
+        }
+
+        .risk-description {
+            color: #aeb8c9;
+            font-size: 13px;
+        }
+
+        .analysis {
+            margin-top: 15px;
+
+            padding: 15px;
+
+            background: #0a111e;
+
+            border-radius: 9px;
+
+            border: 1px solid #1d293d;
+        }
+
+        .analysis-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .analysis-item {
+            color: #00e0ad;
+            font-size: 13px;
+            margin: 5px 0;
+        }
+
+        /* ================= SESSION SECURITY ================= */
+
+        .security-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 12px;
+        }
+
+        .security-box {
+            background: #0a111e;
+
+            border: 1px solid #1d293d;
+
+            border-radius: 10px;
+
+            padding: 17px;
+
+            text-align: center;
+        }
+
+        .security-icon {
+            font-size: 23px;
+            margin-bottom: 8px;
+        }
+
+        .security-name {
+            color: #9aa6ba;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .security-status {
+            color: #00e0ad;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        /* ================= HISTORY ================= */
+
+        .history-card {
+            background: rgba(13, 20, 34, 0.92);
+
+            border: 1px solid #202c42;
+
+            border-radius: 14px;
+
+            padding: 24px;
+
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+
+            border-collapse: collapse;
+
+            margin-top: 18px;
+
+            min-width: 850px;
+        }
+
+        th {
+            text-align: left;
+
+            color: #7f8ca2;
+
+            font-size: 12px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.6px;
+
+            padding: 13px;
+
+            border-bottom:
+                1px solid #28354b;
+        }
+
+        td {
+            padding: 14px 13px;
+
+            border-bottom:
+                1px solid #1a2435;
+
+            color: #dce3ee;
+
+            font-size: 13px;
+
+            vertical-align: top;
+        }
+
+        .device-cell {
+            max-width: 400px;
+
+            word-break: break-word;
+
+            color: #aeb8c9;
+        }
+
+        /* ================= STATUS COLORS ================= */
+
+        .status-success {
+            color: #00e0ad;
+
+            font-weight: 800;
+
+            letter-spacing: 0.5px;
+        }
+
+        .status-failed {
+            color: #ff4d6d;
+
+            font-weight: 800;
+
+            letter-spacing: 0.5px;
+        }
+
+        .risk-low {
+            color: #00e0ad;
+
+            font-weight: 700;
+        }
+
+        .risk-medium {
+            color: #ffcc66;
+
+            font-weight: 700;
+        }
+
+        .risk-high {
+            color: #ff4d6d;
+
+            font-weight: 700;
+        }
+
+        /* ================= FOOTER ================= */
+
+        .footer {
+            text-align: center;
+
+            color: #66738a;
+
+            font-size: 12px;
+
+            margin-top: 25px;
+        }
+
+        /* ================= MOBILE ================= */
+
+        @media (max-width: 700px) {
+
+            body {
+                padding: 15px;
             }
 
             .header {
                 flex-direction: column;
+
                 align-items: flex-start;
+
                 gap: 15px;
             }
 
-            .current-grid,
-            .risk-grid {
+            .security-grid {
                 grid-template-columns: 1fr;
             }
 
-            .session-box {
-                align-items: flex-start;
-                gap: 15px;
+            .risk-container {
                 flex-direction: column;
+
+                align-items: flex-start;
             }
         }
+
     </style>
 </head>
+
 
 <body>
 
 <div class="container">
 
-    <!-- HEADER -->
+
+    <!-- ================= HEADER ================= -->
+
     <div class="header">
+
         <div class="brand">
-            <h1>SECURE LOGIN SYSTEM</h1>
-            <p>Real-Time Authentication Security Dashboard</p>
+
+            <div class="brand-icon">
+                🔐
+            </div>
+
+            <div>
+
+                <div class="brand-title">
+                    SECURE LOGIN SYSTEM
+                </div>
+
+                <div class="brand-subtitle">
+                    Real-Time Authentication Security Dashboard
+                </div>
+
+            </div>
+
         </div>
 
-        <div class="verified">
-            ● AUTHENTICATION VERIFIED
-        </div>
+
+        <a
+            href="{{ url_for('logout') }}"
+            class="logout"
+        >
+            Logout
+        </a>
+
     </div>
 
 
-    <!-- 1. CURRENT LOGIN -->
-    <div class="section">
+    <!-- ================= VERIFIED ================= -->
 
-        <div class="section-title">
-            <h2>Current Login</h2>
-            <span>Active authentication details</span>
+    <div class="verified">
+
+        <div class="verified-title">
+            ✓ AUTHENTICATION VERIFIED
         </div>
 
-        <div class="current-grid">
-
-            <div class="info-box">
-                <div class="label">Username</div>
-                <div class="value">{{ username }}</div>
-            </div>
-
-            <div class="info-box">
-                <div class="label">IP Address</div>
-                <div class="value">{{ ip }}</div>
-            </div>
-
-            <div class="info-box">
-                <div class="label">Login Time</div>
-                <div class="value">{{ login_time }}</div>
-            </div>
-
-            <div class="info-box">
-                <div class="label">Device / Browser</div>
-                <div class="value">{{ device }}</div>
-            </div>
-
+        <div class="verified-text">
+            Your current login session has been successfully
+            authenticated and monitored.
         </div>
+
     </div>
 
 
-    <!-- 2. RISK ASSESSMENT -->
-    <div class="section">
+    <!-- ================= TOP GRID ================= -->
 
-        <div class="section-title">
-            <h2>Security & Risk Assessment</h2>
-            <span>Login behavior analysis</span>
+    <div class="grid">
+
+
+        <!-- ================= CURRENT LOGIN ================= -->
+
+        <div class="card">
+
+            <div class="card-title">
+                Current Login
+            </div>
+
+            <div class="card-subtitle">
+                Details of the current authenticated session
+            </div>
+
+
+            <!-- USERNAME -->
+
+            <div class="info-row">
+
+                <div class="info-label">
+                    Username
+                </div>
+
+                <div class="info-value">
+                    {{ username }}
+                </div>
+
+            </div>
+
+
+            <!-- IP ADDRESS -->
+
+            <div class="info-row">
+
+                <div class="info-label">
+                    IP Address
+                </div>
+
+                <div class="info-value">
+                    {{ current_ip }}
+                </div>
+
+            </div>
+
+
+            <!-- LOGIN TIME -->
+
+            <div class="info-row">
+
+                <div class="info-label">
+                    Login Time
+                </div>
+
+                <div class="info-value">
+                    {{ current_login_time }}
+                </div>
+
+            </div>
+
+
+            <!-- DEVICE STATUS -->
+
+            <div class="info-row">
+
+                <div class="info-label">
+                    Device Status
+                </div>
+
+                <div
+                    class="info-value
+                    {% if new_device %}
+                        device-new
+                    {% else %}
+                        device-recognized
+                    {% endif %}"
+                >
+                    {{ device_status }}
+                </div>
+
+            </div>
+
+
+            <!-- DEVICE / BROWSER -->
+
+            <div class="info-row">
+
+                <div class="info-label">
+                    Device / Browser
+                </div>
+
+                <div class="info-value">
+                    {{ current_device }}
+                </div>
+
+            </div>
+
         </div>
 
-        <div class="risk-grid">
 
-            <div class="risk-card">
-                <div class="label">Risk Score</div>
+        <!-- ================= RISK ASSESSMENT ================= -->
+
+        <div class="card">
+
+            <div class="card-title">
+                Security & Risk Assessment
+            </div>
+
+            <div class="card-subtitle">
+                Automated login security analysis
+            </div>
+
+
+            <div class="risk-container">
 
                 <div class="risk-score">
-                    {{ risk.score }}
-                </div>
-            </div>
 
-            <div class="risk-card">
-                <div class="label">Risk Level</div>
-
-                <div class="risk-level">
-                    {{ risk.level }}
-                </div>
-            </div>
-
-            <div class="risk-card">
-                <div class="label">Security Analysis</div>
-
-                {% if risk.reasons %}
-                    <ul class="reason-list">
-                        {% for reason in risk.reasons %}
-                            <li>{{ reason }}</li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <div class="value" style="margin-top:10px;">
-                        No suspicious activity detected.
+                    <div class="risk-number">
+                        {{ risk_score }}
                     </div>
+
+                    <div class="risk-label">
+                        SCORE
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <div class="risk-level">
+                        {{ risk_level }}
+                    </div>
+
+                    <div class="risk-description">
+                        Current authentication risk level
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="analysis">
+
+                <div class="analysis-title">
+                    Security Analysis
+                </div>
+
+
+                {% if risk_reasons %}
+
+                    {% for reason in risk_reasons %}
+
+                        <div class="analysis-item">
+                            ⚠ {{ reason }}
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="analysis-item">
+                        ✓ No unusual security activity detected.
+                    </div>
+
                 {% endif %}
 
             </div>
 
         </div>
+
     </div>
 
 
-    <!-- 3. SESSION SECURITY -->
-    <div class="section">
+    <!-- ================= SESSION SECURITY ================= -->
 
-        <div class="section-title">
-            <h2>Session Security</h2>
-            <span>Current session status</span>
+    <div
+        class="card"
+        style="margin-bottom:22px;"
+    >
+
+        <div class="card-title">
+            Session Security
         </div>
 
-        <div class="session-box">
+        <div class="card-subtitle">
+            Current session protection status
+        </div>
 
-            <div class="session-left">
 
-                <div class="session-icon">
+        <div class="security-grid">
+
+
+            <div class="security-box">
+
+                <div class="security-icon">
+                    🔐
+                </div>
+
+                <div class="security-name">
+                    Password Protection
+                </div>
+
+                <div class="security-status">
+                    ACTIVE
+                </div>
+
+            </div>
+
+
+            <div class="security-box">
+
+                <div class="security-icon">
+                    🛡️
+                </div>
+
+                <div class="security-name">
+                    Risk Analysis
+                </div>
+
+                <div class="security-status">
+                    ACTIVE
+                </div>
+
+            </div>
+
+
+            <div class="security-box">
+
+                <div class="security-icon">
                     ✓
                 </div>
 
-                <div>
-                    <div class="session-title">
-                        Current Session
-                    </div>
-
-                    <div class="session-text">
-                        Your authentication session is active and protected.
-                    </div>
+                <div class="security-name">
+                    Session Authentication
                 </div>
 
-            </div>
+                <div class="security-status">
+                    VERIFIED
+                </div>
 
-            <div class="protected">
-                SESSION PROTECTED
             </div>
 
         </div>
@@ -424,92 +754,188 @@
     </div>
 
 
-    <!-- 4. RECENT LOGIN HISTORY -->
-    <div class="section">
+    <!-- ================= LOGIN HISTORY ================= -->
 
-        <div class="section-title">
-            <h2>Recent Login History</h2>
-            <span>Latest authentication activity</span>
+    <div class="history-card">
+
+        <div class="card-title">
+            Recent Login History
         </div>
 
-        <div class="table-wrapper">
+        <div class="card-subtitle">
+            Recent authentication attempts and security analysis
+        </div>
 
-            <table>
 
-                <thead>
-                    <tr>
-                        <th>Login Time</th>
-                        <th>IP Address</th>
-                        <th>Device / Browser</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
+        <table>
 
-                <tbody>
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Status
+                    </th>
+
+                    <th>
+                        IP Address
+                    </th>
+
+                    <th>
+                        Device
+                    </th>
+
+                    <th>
+                        Login Time
+                    </th>
+
+                    <th>
+                        Risk Score
+                    </th>
+
+                    <th>
+                        Risk Level
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
 
                 {% if history %}
 
                     {% for row in history %}
 
-                    <tr>
+                        <tr>
 
-                        <td>
-                            {{ row[4] }}
-                        </td>
+                            <!-- STATUS -->
 
-                        <td>
-                            {{ row[1] }}
-                        </td>
+                            <td>
 
-                        <td>
-                            {{ row[2] }}
-                        </td>
+                                {% if row["status"] == "SUCCESS" %}
 
-                        <td>
-                            {% if row[3] == "Success" %}
-                                <span class="status-success">
-                                    ● SUCCESS
-                                </span>
-                            {% else %}
-                                <span class="status-failed">
-                                    ● FAILED
-                                </span>
-                            {% endif %}
-                        </td>
+                                    <span class="status-success">
+                                        SUCCESS
+                                    </span>
 
-                    </tr>
+                                {% elif row["status"] == "FAILED" %}
+
+                                    <span class="status-failed">
+                                        FAILED
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="status-failed">
+                                        {{ row["status"] }}
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- IP -->
+
+                            <td>
+                                {{ row["ip_address"] }}
+                            </td>
+
+
+                            <!-- DEVICE -->
+
+                            <td class="device-cell">
+                                {{ row["device"] }}
+                            </td>
+
+
+                            <!-- TIME -->
+
+                            <td>
+                                {{ row["login_time"] }}
+                            </td>
+
+
+                            <!-- RISK SCORE -->
+
+                            <td>
+                                {{ row["risk_score"] }}
+                            </td>
+
+
+                            <!-- RISK LEVEL -->
+
+                            <td>
+
+                                {% if row["risk_level"] == "LOW" %}
+
+                                    <span class="risk-low">
+                                        LOW
+                                    </span>
+
+                                {% elif row["risk_level"] == "MEDIUM" %}
+
+                                    <span class="risk-medium">
+                                        MEDIUM
+                                    </span>
+
+                                {% elif row["risk_level"] == "HIGH" %}
+
+                                    <span class="risk-high">
+                                        HIGH
+                                    </span>
+
+                                {% else %}
+
+                                    {{ row["risk_level"] }}
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
 
                     {% endfor %}
 
                 {% else %}
 
                     <tr>
-                        <td colspan="4" style="text-align:center; color:#71839b;">
+
+                        <td
+                            colspan="6"
+                            style="
+                                text-align:center;
+                                color:#7f8ca2;
+                                padding:25px;
+                            "
+                        >
                             No login history available.
                         </td>
+
                     </tr>
 
                 {% endif %}
 
-                </tbody>
+            </tbody>
 
-            </table>
-
-        </div>
+        </table>
 
     </div>
 
 
-    <!-- LOGOUT -->
-    <div class="bottom">
+    <!-- ================= FOOTER ================= -->
 
-        <a href="{{ url_for('logout') }}" class="logout">
-            Logout
-        </a>
+    <div class="footer">
+
+        ✓ Protected with password hashing and login risk analysis
 
     </div>
+
 
 </div>
 
 </body>
+
 </html>

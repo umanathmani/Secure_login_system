@@ -1,218 +1,311 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verify OTP | Secure Login</title>
+
+    <title>OTP Verification - Secure Login System</title>
 
     <style>
+
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            margin: 0;
+
             min-height: 100vh;
+
             display: flex;
+
             justify-content: center;
+
             align-items: center;
+
+            font-family: "Segoe UI", Arial, sans-serif;
+
+            background:
+                radial-gradient(
+                    circle at top,
+                    #14213d,
+                    #080d18 55%,
+                    #05070c
+                );
+
+            color: white;
+
             padding: 20px;
-            background: #111827;
-            color: #f9fafb;
-            font-family: Arial, sans-serif;
         }
 
-        .otp-card {
+
+        .container {
+
             width: 100%;
-            max-width: 410px;
-            padding: 32px;
-            background: #1f2937;
-            border: 1px solid #374151;
-            border-radius: 18px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+
+            max-width: 420px;
+
+            background: rgba(
+                13,
+                20,
+                34,
+                0.96
+            );
+
+            border: 1px solid #202c42;
+
+            border-radius: 16px;
+
+            padding: 35px;
+
+            box-shadow:
+                0 20px 50px
+                rgba(0, 0, 0, 0.45);
         }
+
 
         .icon {
-            font-size: 42px;
+
             text-align: center;
+
+            font-size: 45px;
+
+            margin-bottom: 15px;
         }
+
 
         h1 {
-            margin: 12px 0;
+
             text-align: center;
-            font-size: 25px;
+
+            font-size: 24px;
+
+            margin-bottom: 8px;
         }
+
 
         .subtitle {
-            color: #9ca3af;
+
             text-align: center;
-            line-height: 1.5;
+
+            color: #8793a8;
+
             font-size: 14px;
-        }
 
-        .demo-box {
-            margin: 22px 0;
-            padding: 16px;
-            background: #064e3b;
-            border: 1px solid #059669;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .demo-label {
-            color: #a7f3d0;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .demo-code {
-            margin-top: 8px;
-            color: #ffffff;
-            font-size: 30px;
-            font-weight: bold;
-            letter-spacing: 8px;
-        }
-
-        .warning {
-            color: #fde68a;
-            font-size: 12px;
             line-height: 1.5;
-            margin-top: 8px;
+
+            margin-bottom: 28px;
         }
+
 
         label {
+
             display: block;
+
+            color: #aeb8c9;
+
+            font-size: 13px;
+
             margin-bottom: 8px;
-            font-size: 14px;
         }
+
 
         input {
+
             width: 100%;
-            padding: 13px;
-            border: 1px solid #4b5563;
+
+            padding: 14px;
+
+            background: #0a111e;
+
+            border: 1px solid #2a3850;
+
             border-radius: 8px;
-            background: #111827;
+
             color: white;
-            font-size: 22px;
+
+            font-size: 18px;
+
             text-align: center;
-            letter-spacing: 8px;
+
+            letter-spacing: 6px;
+
+            outline: none;
+
+            margin-bottom: 20px;
         }
 
+
+        input:focus {
+
+            border-color: #00e0ad;
+        }
+
+
         button {
+
             width: 100%;
-            margin-top: 16px;
+
             padding: 13px;
+
             border: none;
+
             border-radius: 8px;
-            background: #2563eb;
-            color: white;
+
+            background: #00e0ad;
+
+            color: #06100e;
+
             font-size: 15px;
-            font-weight: bold;
+
+            font-weight: 800;
+
             cursor: pointer;
         }
 
+
         button:hover {
-            background: #1d4ed8;
+
+            opacity: 0.9;
         }
 
-        .resend-button {
-            background: #374151;
-        }
-
-        .resend-button:hover {
-            background: #4b5563;
-        }
 
         .error {
-            margin: 14px 0;
-            padding: 10px;
-            border-radius: 7px;
-            background: #7f1d1d;
-            color: #fecaca;
-            font-size: 14px;
+
+            background:
+                rgba(
+                    255,
+                    77,
+                    109,
+                    0.1
+                );
+
+            border: 1px solid
+                rgba(
+                    255,
+                    77,
+                    109,
+                    0.3
+                );
+
+            color: #ff4d6d;
+
+            padding: 12px;
+
+            border-radius: 8px;
+
+            font-size: 13px;
+
+            margin-bottom: 18px;
+
+            text-align: center;
         }
 
-        .message {
-            margin: 14px 0;
-            color: #86efac;
-            font-size: 14px;
-        }
 
         .back {
+
             display: block;
-            margin-top: 20px;
-            color: #93c5fd;
+
             text-align: center;
+
+            margin-top: 20px;
+
+            color: #8793a8;
+
             text-decoration: none;
-            font-size: 14px;
+
+            font-size: 13px;
         }
+
 
         .back:hover {
-            text-decoration: underline;
+
+            color: #00e0ad;
         }
+
     </style>
+
 </head>
 
+
 <body>
-    <main class="otp-card">
-        <div class="icon">🔐</div>
 
-        <h1>Verify Your Login</h1>
 
-        <p class="subtitle">
-            Your password is correct.<br>
-            Enter the 6-digit demo OTP to continue.
-        </p>
+<div class="container">
 
-        {% if demo_otp %}
-        <div class="demo-box">
-            <div class="demo-label">Local Demo OTP</div>
-            <div class="demo-code">{{ demo_otp }}</div>
-            <div class="warning">
-                Demo only. This code is displayed locally,
-                not sent by SMS or email.
-            </div>
+
+    <div class="icon">
+        🔐
+    </div>
+
+
+    <h1>
+        OTP Verification
+    </h1>
+
+
+    <div class="subtitle">
+
+        Enter the OTP sent to your
+        registered mobile number.
+
+    </div>
+
+
+    {% if error %}
+
+        <div class="error">
+            {{ error }}
         </div>
-        {% endif %}
 
-        {% if error %}
-        <div class="error">{{ error }}</div>
-        {% endif %}
+    {% endif %}
 
-        {% if message %}
-        <div class="message">{{ message }}</div>
-        {% endif %}
 
-        <form action="{{ url_for('verify_otp') }}" method="POST">
-            <label for="otp">Enter OTP</label>
+    <form
+        method="POST"
+        action="{{ url_for('verify_otp_page') }}"
+    >
 
-            <input
-                type="text"
-                id="otp"
-                name="otp"
-                inputmode="numeric"
-                pattern="[0-9]{6}"
-                maxlength="6"
-                minlength="6"
-                autocomplete="one-time-code"
-                placeholder="000000"
-                required
-            >
+        <label>
+            Enter OTP
+        </label>
 
-            <button type="submit">Verify OTP</button>
-        </form>
 
-        <form action="{{ url_for('resend_demo_otp') }}" method="POST">
-            <button class="resend-button" type="submit">
-                Generate New Demo OTP
-            </button>
-        </form>
+        <input
+            type="text"
+            name="otp"
+            placeholder="••••••"
+            maxlength="6"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            required
+        >
 
-        <a class="back" href="{{ url_for('home') }}">
-            Back to Login
-        </a>
-    </main>
+
+        <button type="submit">
+
+            Verify OTP
+
+        </button>
+
+    </form>
+
+
+    <a
+        href="{{ url_for('login') }}"
+        class="back"
+    >
+
+        ← Back to Login
+
+    </a>
+
+
+</div>
+
+
 </body>
 </html>

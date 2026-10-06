@@ -1,125 +1,244 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>SecureAuth | Create Account</title>
+    <title>Register | Secure Login System</title>
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f4f7fb;
+        }
+
+        .register-container {
+            width: 400px;
+            background: white;
+            padding: 35px;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.10);
+        }
+
+        .logo {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #172554;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+        }
+
+        .phone-hint {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .error {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+            padding: 10px;
+            border-radius: 7px;
+            margin-bottom: 18px;
+            font-size: 13px;
+        }
+
+        .register-btn {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .register-btn:hover {
+            background: #1d4ed8;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 22px;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .login-link a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .security-note {
+            margin-top: 22px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #475569;
+            text-align: center;
+        }
+    </style>
 </head>
 
 <body>
 
-    <div class="background"></div>
+    <div class="register-container">
 
-    <div class="login-container">
+        <div class="logo">
+            Secure Login System
+        </div>
 
-        <!-- Brand -->
-        <div class="brand">
+        <div class="subtitle">
+            Create your secure account
+        </div>
 
-            <div class="brand-icon">◈</div>
+        {% if error %}
+        <div class="error">
+            {{ error }}
+        </div>
+        {% endif %}
 
-            <h1>
-                SECURE<span>AUTH</span>
-            </h1>
+        <form method="POST" action="{{ url_for('register') }}">
 
-            <p>SYSTEM ONLINE</p>
+            <div class="form-group">
+
+                <label for="username">
+                    Username
+                </label>
+
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    placeholder="Enter username"
+                    required
+                    autocomplete="username"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="password">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Minimum 8 characters"
+                    minlength="8"
+                    required
+                    autocomplete="new-password"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="phone">
+                    Registered Phone Number
+                </label>
+
+                <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    placeholder="+91XXXXXXXXXX"
+                    required
+                    autocomplete="tel"
+                >
+
+                <div class="phone-hint">
+                    OTP security verification will be sent to this number.
+                </div>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="register-btn">
+                Create Account
+            </button>
+
+        </form>
+
+
+        <div class="login-link">
+
+            Already have an account?
+
+            <a href="{{ url_for('login') }}">
+                Login
+            </a>
 
         </div>
 
 
-        <!-- Register Card -->
-        <div class="login-card">
-
-            <h2>Create Account</h2>
-
-            <p class="subtitle">
-                Create your secure authentication account
-            </p>
-
-
-            <!-- Registration Form -->
-            <form method="POST" action="/register">
-
-                <!-- Username -->
-                <label>Username</label>
-
-                <input
-                    type="text"
-                    name="username"
-                    placeholder="Choose a username"
-                    required
-                >
-
-
-                <!-- Email -->
-                <label>Email Address</label>
-
-                <input
-                    type="email"
-                    name="email"
-                    placeholder="Enter your email"
-                    required
-                >
-
-
-                <!-- Password -->
-                <label>Password</label>
-
-                <input
-                    type="password"
-                    name="password"
-                    placeholder="Create a strong password"
-                    required
-                >
-
-
-                <!-- Confirm Password -->
-                <label>Confirm Password</label>
-
-                <input
-                    type="password"
-                    name="confirm_password"
-                    placeholder="Confirm your password"
-                    required
-                >
-
-
-                <!-- Submit -->
-                <button type="submit">
-                    CREATE ACCOUNT
-                </button>
-
-            </form>
-
-
-            <!-- Security Divider -->
-            <div class="divider">
-                <span>SECURITY</span>
-            </div>
-
-
-            <p class="protected">
-                🔒 Your password will be securely protected
-            </p>
-
-
-            <!-- Login Link -->
-            <p class="register">
-
-                Already have an account?
-
-                <a href="/">
-                    Sign In
-                </a>
-
-            </p>
-
+        <div class="security-note">
+            Your phone number is used for security verification
+            when suspicious login activity is detected.
         </div>
 
     </div>
 
 </body>
+
 </html>

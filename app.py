@@ -1,40 +1,68 @@
-import os
-import sqlite3
-import time
-from functools import wraps
-
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session
 from flask_bcrypt import Bcrypt
+from twilio.rest import Client
+from dotenv import load_dotenv
+
+import sqlite3
+import os
+from datetime import datetime
 
 from security.risk_engine import calculate_risk
 
 
-# ==================================================
-# APP CONFIGURATION
-# ==================================================
+# =========================================================
+# LOAD ENVIRONMENT VARIABLES
+# =========================================================
+
+load_dotenv()
 
 app = Flask(__name__)
 
-app.secret_key = os.environ.get(
+app.secret_key = os.getenv(
     "SECRET_KEY",
-    "secure-login-demo-change-this-key"
+    "secure-login-system-secret-key"
 )
 
 bcrypt = Bcrypt(app)
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE = os.path.join(BASE_DIR, "database.db")
+
+# =========================================================
+# TWILIO CONFIGURATION
+# =========================================================
+
+TWILIO_ACCOUNT_SID = os.getenv(
+    "TWILIO_ACCOUNT_SID"
+)
+
+TWILIO_AUTH_TOKEN = os.getenv(
+    "TWILIO_AUTH_TOKEN"
+)
+
+TWILIO_VERIFY_SERVICE_SID = os.getenv(
+    "TWILIO_VERIFY_SERVICE_SID"
+)
 
 
-# ==================================================
-# DATABASE
-# ==================================================
+if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN:
+
+    twilio_client = Client(
+        TWILIO_ACCOUNT_SID,
+        TWILIO_AUTH_TOKEN
+    )
+
+else:
+
+    twilio_client = None
+
+
+# =========================================================
+# DATABASE CONNECTION
+# =========================================================
 
 def get_db():
 
     conn = sqlite3.connect(
-        DATABASE,
-        timeout=10
+        "database.db"
     )
 
     conn.row_factory = sqlite3.Row
@@ -42,251 +70,424 @@ def get_db():
     return conn
 
 
+# =========================================================
+# INITIALIZE DATABASE
+# =========================================================
+
 def init_db():
 
     conn = get_db()
-    cur = conn.cursor()
 
-    # --------------------------------------------------
+    cursor = conn.cursor()
+
+
     # USERS TABLE
-    # --------------------------------------------------
-
-    cur.execute("""
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
 
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             username TEXT UNIQUE NOT NULL,
 
-            password TEXT NOT NULL
+            email TEXT UNIQUE,
 
+            password TEXT NOT NULL,
+
+            phone TEXT,
+
+            phone_verified INTEGER DEFAULT 0,
+
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
-    # --------------------------------------------------
-    # LOGIN HISTORY TABLE
-    # --------------------------------------------------
 
-    cur.execute("""
+    # LOGIN HISTORY TABLE
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS login_history (
 
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             username TEXT,
 
+            status TEXT,
+
             ip_address TEXT,
 
             device TEXT,
 
-            status TEXT,
+            login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-            timestamp TEXT
+            risk_score INTEGER DEFAULT 0,
 
+            risk_level TEXT DEFAULT 'LOW'
         )
     """)
 
-    # --------------------------------------------------
-    # CHECK EXISTING COLUMNS
-    # --------------------------------------------------
 
-    cur.execute(
-        "PRAGMA table_info(login_history)"
-    )
+    # CHECK USERS TABLE COLUMNS
+    columns = cursor.execute(
+        "PRAGMA table_info(users)"
+    ).fetchall()
 
-    columns = {
-        row["name"]
-        for row in cur.fetchall()
-    }
 
-    required_columns = {
-        "username": "TEXT",
-        "ip_address": "TEXT",
-        "device": "TEXT",
-        "status": "TEXT",
-        "timestamp": "TEXT"
-    }
+    column_names = [
+        column["name"]
+        for column in columns
+    ]
 
-    for column, column_type in required_columns.items():
 
-        if column not in columns:
+    # ADD ACCOUNT LOCK COLUMN
+    if "is_locked" not in column_names:
 
-            cur.execute(
-                f"""
-                ALTER TABLE login_history
-                ADD COLUMN {column} {column_type}
-                """
-            )
+        cursor.execute("""
+            ALTER TABLE users
+            ADD COLUMN is_locked INTEGER DEFAULT 0
+        """)
+
 
     conn.commit()
+
     conn.close()
 
 
-# ==================================================
-# RECORD LOGIN HISTORY
-# ==================================================
+# =========================================================
+# RECORD LOGIN ATTEMPT
+# =========================================================
 
-def record_attempt(username, status):
-
-    ip_address = request.headers.get(
-        "X-Forwarded-For",
-        request.remote_addr or "Unknown"
-    ).split(",")[0].strip()
-
-    device = request.headers.get(
-        "User-Agent",
-        "Unknown Device"
-    )
-
-    timestamp = time.strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
+def record_attempt(
+    username,
+    status,
+    ip_address,
+    device,
+    risk_score=0,
+    risk_level="LOW"
+):
 
     conn = get_db()
 
-    try:
-
-        # Find user
-        user = conn.execute(
-            """
-            SELECT id
-            FROM users
-            WHERE username = ?
-            """,
-            (username,)
-        ).fetchone()
-
-        # If username does not exist
-        if user is None:
-
-            conn.close()
-
-            return
-
-        user_id = user["id"]
-
-        # Check database structure
-        cur = conn.execute(
-            "PRAGMA table_info(login_history)"
-        )
-
-        columns = {
-            row["name"]
-            for row in cur.fetchall()
-        }
-
-        # --------------------------------------------------
-        # OLD DATABASE WITH USER_ID
-        # --------------------------------------------------
-
-        if "user_id" in columns:
-
-            conn.execute(
-                """
-                INSERT INTO login_history
-                (
-                    user_id,
-                    username,
-                    ip_address,
-                    device,
-                    status,
-                    timestamp
-                )
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    user_id,
-                    username,
-                    ip_address,
-                    device,
-                    status,
-                    timestamp
-                )
-            )
-
-        # --------------------------------------------------
-        # NORMAL DATABASE
-        # --------------------------------------------------
-
-        else:
-
-            conn.execute(
-                """
-                INSERT INTO login_history
-                (
-                    username,
-                    ip_address,
-                    device,
-                    status,
-                    timestamp
-                )
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (
-                    username,
-                    ip_address,
-                    device,
-                    status,
-                    timestamp
-                )
-            )
-
-        conn.commit()
-
-    except sqlite3.Error as error:
-
-        app.logger.error(
-            f"Login history error: {error}"
-        )
-
-    finally:
-
-        conn.close()
+    cursor = conn.cursor()
 
 
-# ==================================================
-# LOGIN REQUIRED
-# ==================================================
-
-def login_required(function):
-
-    @wraps(function)
-    def wrapper(*args, **kwargs):
-
-        if "user_id" not in session:
-
-            return redirect(
-                url_for("login")
-            )
-
-        return function(
-            *args,
-            **kwargs
-        )
-
-    return wrapper
-
-
-# ==================================================
-# HOME
-# ==================================================
-
-@app.route("/")
-def home():
-
-    if "user_id" in session:
-
-        return redirect(
-            url_for("dashboard")
-        )
-
-    return redirect(
-        url_for("login")
+    login_time = datetime.now().strftime(
+        "%Y-%m-%d %H:%M:%S"
     )
 
 
-# ==================================================
+    cursor.execute("""
+        INSERT INTO login_history
+        (
+            username,
+            status,
+            ip_address,
+            device,
+            login_time,
+            risk_score,
+            risk_level
+        )
+
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (
+        username,
+        status,
+        ip_address,
+        device,
+        login_time,
+        risk_score,
+        risk_level
+    ))
+
+
+    conn.commit()
+
+    conn.close()
+
+
+# =========================================================
+# GET FAILED ATTEMPTS AFTER LAST SUCCESS OR RECOVERY
+# =========================================================
+
+def get_recent_failed_attempts(username):
+
+    conn = get_db()
+
+    cursor = conn.cursor()
+
+
+    # Latest successful login OR account recovery
+    last_reset = cursor.execute("""
+        SELECT id
+        FROM login_history
+        WHERE username = ?
+        AND status IN ('SUCCESS', 'RECOVERY')
+        ORDER BY id DESC
+        LIMIT 1
+    """, (username,)).fetchone()
+
+
+    if last_reset:
+
+        failed_count = cursor.execute("""
+            SELECT COUNT(*)
+            FROM login_history
+            WHERE username = ?
+            AND status = 'FAILED'
+            AND id > ?
+        """, (
+            username,
+            last_reset["id"]
+        )).fetchone()[0]
+
+
+    else:
+
+        failed_count = cursor.execute("""
+            SELECT COUNT(*)
+            FROM login_history
+            WHERE username = ?
+            AND status = 'FAILED'
+        """, (username,)).fetchone()[0]
+
+
+    conn.close()
+
+    return failed_count
+
+
+# =========================================================
+# CHECK NEW DEVICE
+# =========================================================
+
+def is_new_device(
+    username,
+    current_device
+):
+
+    conn = get_db()
+
+    cursor = conn.cursor()
+
+
+    previous_login = cursor.execute("""
+        SELECT device
+        FROM login_history
+        WHERE username = ?
+        AND status = 'SUCCESS'
+        ORDER BY id DESC
+        LIMIT 1
+    """, (username,)).fetchone()
+
+
+    conn.close()
+
+
+    if not previous_login:
+
+        return True
+
+
+    return (
+        previous_login["device"]
+        != current_device
+    )
+
+
+# =========================================================
+# CHECK NEW IP
+# =========================================================
+
+def is_new_ip(
+    username,
+    current_ip
+):
+
+    conn = get_db()
+
+    cursor = conn.cursor()
+
+
+    previous_login = cursor.execute("""
+        SELECT ip_address
+        FROM login_history
+        WHERE username = ?
+        AND status = 'SUCCESS'
+        ORDER BY id DESC
+        LIMIT 1
+    """, (username,)).fetchone()
+
+
+    conn.close()
+
+
+    if not previous_login:
+
+        return True
+
+
+    return (
+        previous_login["ip_address"]
+        != current_ip
+    )
+
+
+# =========================================================
+# CHECK UNUSUAL LOGIN TIME
+# =========================================================
+
+def is_unusual_login_time(username):
+
+    conn = get_db()
+
+    cursor = conn.cursor()
+
+
+    previous_login = cursor.execute("""
+        SELECT login_time
+        FROM login_history
+        WHERE username = ?
+        AND status = 'SUCCESS'
+        ORDER BY id DESC
+        LIMIT 1
+    """, (username,)).fetchone()
+
+
+    conn.close()
+
+
+    if not previous_login:
+
+        return False
+
+
+    try:
+
+        previous_time = datetime.strptime(
+            previous_login["login_time"],
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+
+        current_time = datetime.now()
+
+
+        previous_hour = previous_time.hour
+
+        current_hour = current_time.hour
+
+
+        hour_difference = abs(
+            current_hour - previous_hour
+        )
+
+
+        hour_difference = min(
+            hour_difference,
+            24 - hour_difference
+        )
+
+
+        return hour_difference > 2
+
+
+    except Exception:
+
+        return False
+
+
+# =========================================================
+# SEND OTP
+# =========================================================
+
+def send_otp(phone):
+
+    if not twilio_client:
+
+        return False
+
+
+    try:
+
+        verification = (
+            twilio_client
+            .verify
+            .v2
+            .services(
+                TWILIO_VERIFY_SERVICE_SID
+            )
+            .verifications
+            .create(
+                to=phone,
+                channel="sms"
+            )
+        )
+
+
+        return (
+            verification.status
+            == "pending"
+        )
+
+
+    except Exception as e:
+
+        print(
+            "OTP SEND ERROR:",
+            e
+        )
+
+        return False
+
+
+# =========================================================
+# VERIFY OTP
+# =========================================================
+
+def verify_otp(
+    phone,
+    otp
+):
+
+    if not twilio_client:
+
+        return False
+
+
+    try:
+
+        verification_check = (
+            twilio_client
+            .verify
+            .v2
+            .services(
+                TWILIO_VERIFY_SERVICE_SID
+            )
+            .verification_checks
+            .create(
+                to=phone,
+                code=otp
+            )
+        )
+
+
+        return (
+            verification_check.status
+            == "approved"
+        )
+
+
+    except Exception as e:
+
+        print(
+            "OTP VERIFY ERROR:",
+            e
+        )
+
+        return False
+
+
+# =========================================================
 # REGISTER
-# ==================================================
+# =========================================================
 
 @app.route(
     "/register",
@@ -294,97 +495,520 @@ def home():
 )
 def register():
 
-    if request.method == "GET":
+    if request.method == "POST":
 
-        return render_template(
-            "register.html"
+        username = request.form.get(
+            "username"
         )
 
-    username = request.form.get(
-        "username",
-        ""
-    ).strip()
-
-    password = request.form.get(
-        "password",
-        ""
-    )
-
-    # Empty validation
-    if not username or not password:
-
-        return render_template(
-            "register.html",
-            error="Please enter username and password."
+        email = request.form.get(
+            "email"
         )
 
-    # Password length
-    if len(password) < 8:
-
-        return render_template(
-            "register.html",
-            error="Password must be at least 8 characters."
+        phone = request.form.get(
+            "phone"
         )
 
-    conn = get_db()
+        password = request.form.get(
+            "password"
+        )
 
-    try:
 
-        password_hash = bcrypt.generate_password_hash(
-            password
-        ).decode("utf-8")
+        if not username or not password:
 
-        conn.execute(
-            """
+            return render_template(
+                "register.html",
+                error=(
+                    "Username and password "
+                    "are required."
+                )
+            )
+
+
+        conn = get_db()
+
+        cursor = conn.cursor()
+
+
+        existing_user = cursor.execute("""
+            SELECT *
+            FROM users
+            WHERE username = ?
+        """, (username,)).fetchone()
+
+
+        if existing_user:
+
+            conn.close()
+
+
+            return render_template(
+                "register.html",
+                error=(
+                    "Username already exists."
+                )
+            )
+
+
+        hashed_password = (
+            bcrypt
+            .generate_password_hash(
+                password
+            )
+            .decode("utf-8")
+        )
+
+
+        cursor.execute("""
             INSERT INTO users
             (
                 username,
-                password
+                email,
+                password,
+                phone,
+                phone_verified,
+                is_locked
             )
-            VALUES (?, ?)
-            """,
-            (
-                username,
-                password_hash
-            )
-        )
+
+            VALUES (?, ?, ?, ?, 0, 0)
+        """, (
+            username,
+            email,
+            hashed_password,
+            phone
+        ))
+
 
         conn.commit()
 
-    except sqlite3.IntegrityError:
+        conn.close()
+
+
+        session[
+            "registration_username"
+        ] = username
+
+        session[
+            "registration_phone"
+        ] = phone
+
+
+        if phone:
+
+            if send_otp(phone):
+
+                return redirect(
+                    url_for(
+                        "verify_registration"
+                    )
+                )
+
+
+            return render_template(
+                "register.html",
+                error=(
+                    "Unable to send OTP. "
+                    "Please check your "
+                    "Twilio configuration."
+                )
+            )
+
+
+        return redirect(
+            url_for("login")
+        )
+
+
+    return render_template(
+        "register.html"
+    )
+
+
+# =========================================================
+# VERIFY REGISTRATION OTP
+# =========================================================
+
+@app.route(
+    "/verify-registration",
+    methods=["GET", "POST"]
+)
+def verify_registration():
+
+    username = session.get(
+        "registration_username"
+    )
+
+    phone = session.get(
+        "registration_phone"
+    )
+
+
+    if not username or not phone:
+
+        return redirect(
+            url_for("register")
+        )
+
+
+    if request.method == "POST":
+
+        otp = request.form.get(
+            "otp"
+        )
+
+
+        if verify_otp(
+            phone,
+            otp
+        ):
+
+            conn = get_db()
+
+            cursor = conn.cursor()
+
+
+            cursor.execute("""
+                UPDATE users
+                SET phone_verified = 1
+                WHERE username = ?
+            """, (username,))
+
+
+            conn.commit()
+
+            conn.close()
+
+
+            session.pop(
+                "registration_username",
+                None
+            )
+
+            session.pop(
+                "registration_phone",
+                None
+            )
+
+
+            return redirect(
+                url_for("login")
+            )
+
 
         return render_template(
-            "register.html",
-            error="Username already exists."
+            "verify_registration.html",
+            error="Invalid OTP."
         )
 
-    except sqlite3.Error as error:
 
-        app.logger.error(
-            f"Registration error: {error}"
+    return render_template(
+        "verify_registration.html"
+    )
+
+
+# =========================================================
+# ACCOUNT RECOVERY
+# =========================================================
+
+@app.route(
+    "/recover",
+    methods=["GET", "POST"]
+)
+def recover():
+
+    if request.method == "POST":
+
+        username = request.form.get(
+            "username"
         )
 
-        return render_template(
-            "register.html",
-            error="Registration failed."
-        )
 
-    finally:
+        conn = get_db()
+
+        cursor = conn.cursor()
+
+
+        user = cursor.execute("""
+            SELECT *
+            FROM users
+            WHERE username = ?
+        """, (username,)).fetchone()
+
 
         conn.close()
 
-    flash(
-        "Registration successful. Please log in."
+
+        if not user:
+
+            return render_template(
+                "recover.html",
+                error="Username not found."
+            )
+
+
+        if not user["phone"]:
+
+            return render_template(
+                "recover.html",
+                error=(
+                    "No registered phone "
+                    "number found."
+                )
+            )
+
+
+        if user["phone_verified"] != 1:
+
+            return render_template(
+                "recover.html",
+                error=(
+                    "Registered phone number "
+                    "is not verified."
+                )
+            )
+
+
+        if send_otp(
+            user["phone"]
+        ):
+
+            session[
+                "recovery_username"
+            ] = username
+
+
+            return redirect(
+                url_for(
+                    "recovery_otp"
+                )
+            )
+
+
+        return render_template(
+            "recover.html",
+            error=(
+                "Unable to send recovery OTP. "
+                "Please try again."
+            )
+        )
+
+
+    return render_template(
+        "recover.html"
     )
 
-    return redirect(
-        url_for("login")
+
+# =========================================================
+# VERIFY RECOVERY OTP AND UNLOCK ACCOUNT
+# =========================================================
+
+@app.route(
+    "/recovery-otp",
+    methods=["GET", "POST"]
+)
+def recovery_otp():
+
+    username = session.get(
+        "recovery_username"
     )
 
 
-# ==================================================
+    if not username:
+
+        return redirect(
+            url_for("recover")
+        )
+
+
+    conn = get_db()
+
+    cursor = conn.cursor()
+
+
+    user = cursor.execute("""
+        SELECT *
+        FROM users
+        WHERE username = ?
+    """, (username,)).fetchone()
+
+
+    conn.close()
+
+
+    if not user:
+
+        session.pop(
+            "recovery_username",
+            None
+        )
+
+        return redirect(
+            url_for("recover")
+        )
+
+
+    if request.method == "POST":
+
+        otp = request.form.get(
+            "otp"
+        )
+
+
+        # VERIFY RECOVERY OTP
+        if verify_otp(
+            user["phone"],
+            otp
+        ):
+
+            conn = get_db()
+
+            cursor = conn.cursor()
+
+
+            # UNLOCK ACCOUNT
+            cursor.execute("""
+                UPDATE users
+                SET is_locked = 0
+                WHERE username = ?
+            """, (username,))
+
+
+            # CHECK WHETHER UPDATE ACTUALLY HAPPENED
+            updated_user = cursor.execute("""
+                SELECT is_locked
+                FROM users
+                WHERE username = ?
+            """, (username,)).fetchone()
+
+
+            if not updated_user:
+
+                conn.close()
+
+                return render_template(
+                    "verify_otp.html",
+                    error=(
+                        "Unable to recover "
+                        "the account."
+                    )
+                )
+
+
+            if updated_user["is_locked"] != 0:
+
+                conn.close()
+
+                return render_template(
+                    "verify_otp.html",
+                    error=(
+                        "Account unlock failed. "
+                        "Please try again."
+                    )
+                )
+
+
+            # RECORD RECOVERY RESET
+            recovery_time = datetime.now().strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
+
+
+            cursor.execute("""
+                INSERT INTO login_history
+                (
+                    username,
+                    status,
+                    ip_address,
+                    device,
+                    login_time,
+                    risk_score,
+                    risk_level
+                )
+
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                username,
+                "RECOVERY",
+                "Recovery",
+                "Recovery OTP",
+                recovery_time,
+                0,
+                "LOW"
+            ))
+
+
+            conn.commit()
+
+            conn.close()
+
+
+            # CLEAR RECOVERY SESSION
+            session.pop(
+                "recovery_username",
+                None
+            )
+
+
+            # CLEAR OLD LOGIN SESSION DATA
+            session.pop(
+                "otp_username",
+                None
+            )
+
+            session.pop(
+                "otp_ip",
+                None
+            )
+
+            session.pop(
+                "otp_device",
+                None
+            )
+
+            session.pop(
+                "risk_score",
+                None
+            )
+
+            session.pop(
+                "risk_level",
+                None
+            )
+
+            session.pop(
+                "risk_reasons",
+                None
+            )
+
+
+            print(
+                "ACCOUNT RECOVERED:",
+                username
+            )
+
+
+            return redirect(
+                url_for("login")
+            )
+
+
+        return render_template(
+            "verify_otp.html",
+            error=(
+                "Invalid recovery OTP. "
+                "Please try again."
+            )
+        )
+
+
+    return render_template(
+        "verify_otp.html"
+    )
+
+
+# =========================================================
 # LOGIN
-# ==================================================
+# =========================================================
 
 @app.route(
     "/login",
@@ -398,237 +1022,231 @@ def login():
             "login.html"
         )
 
-    username = request.form.get(
-        "username",
-        ""
-    ).strip()
 
-    password = request.form.get(
-        "password",
-        ""
+    username = request.form.get(
+        "username"
     )
 
-    # Empty validation
-    if not username or not password:
+    password = request.form.get(
+        "password"
+    )
 
-        return render_template(
-            "login.html",
-            error="Please enter username and password."
-        )
 
-    # --------------------------------------------------
-    # FIND USER
-    # --------------------------------------------------
+    ip_address = (
+        request.remote_addr
+        or "Unknown"
+    )
+
+
+    device = request.headers.get(
+        "User-Agent",
+        "Unknown"
+    )
+
 
     conn = get_db()
 
-    user = conn.execute(
-        """
-        SELECT
-            id,
-            username,
-            password
+    cursor = conn.cursor()
+
+
+    user = cursor.execute("""
+        SELECT *
         FROM users
         WHERE username = ?
-        """,
-        (username,)
-    ).fetchone()
+    """, (username,)).fetchone()
+
 
     conn.close()
 
-    # --------------------------------------------------
-    # USER NOT FOUND
-    # --------------------------------------------------
 
-    if user is None:
+    if not user:
 
         record_attempt(
             username,
-            "Failed"
+            "FAILED",
+            ip_address,
+            device
         )
+
 
         return render_template(
             "login.html",
-            error="Invalid username or password."
-        )
-
-    # --------------------------------------------------
-    # PASSWORD CHECK
-    # --------------------------------------------------
-
-    try:
-
-        password_correct = (
-            bcrypt.check_password_hash(
-                user["password"],
-                password
+            error=(
+                "Invalid username "
+                "or password."
             )
         )
 
-    except Exception:
 
-        password_correct = False
+    # =====================================================
+    # CHECK LOCKED ACCOUNT
+    # =====================================================
 
-    # --------------------------------------------------
+    if user["is_locked"] == 1:
+
+        return render_template(
+            "login.html",
+            error=(
+                "Your account is locked. "
+                "Please use account recovery."
+            )
+        )
+
+
+    # =====================================================
+    # CHECK PASSWORD
+    # =====================================================
+
+    password_correct = (
+        bcrypt.check_password_hash(
+            user["password"],
+            password
+        )
+    )
+
+
+    # =====================================================
     # WRONG PASSWORD
-    # --------------------------------------------------
+    # =====================================================
 
     if not password_correct:
 
         record_attempt(
             username,
-            "Failed"
+            "FAILED",
+            ip_address,
+            device
         )
+
+
+        failed_attempts = (
+            get_recent_failed_attempts(
+                username
+            )
+        )
+
+
+        print(
+            "FAILED ATTEMPTS:",
+            failed_attempts
+        )
+
+
+        # LOCK AFTER 5 FAILED ATTEMPTS
+        if failed_attempts >= 5:
+
+            conn = get_db()
+
+            cursor = conn.cursor()
+
+
+            cursor.execute("""
+                UPDATE users
+                SET is_locked = 1
+                WHERE username = ?
+            """, (username,))
+
+
+            conn.commit()
+
+            conn.close()
+
+
+            return render_template(
+                "login.html",
+                error=(
+                    "Account locked after "
+                    "5 failed attempts. "
+                    "Please use account recovery."
+                )
+            )
+
 
         return render_template(
             "login.html",
-            error="Invalid username or password."
+            error=(
+                f"Invalid password. "
+                f"Failed attempts: "
+                f"{failed_attempts}/5"
+            )
         )
 
-    # ==================================================
-    # SUCCESSFUL LOGIN
-    # ==================================================
 
-    ip_address = request.headers.get(
-        "X-Forwarded-For",
-        request.remote_addr or "Unknown"
-    ).split(",")[0].strip()
+    # =====================================================
+    # RISK ANALYSIS
+    # =====================================================
 
-    device = request.headers.get(
-        "User-Agent",
-        "Unknown Device"
+    new_device = is_new_device(
+        username,
+        device
     )
 
-    device_display = device[:100]
 
-    login_time = time.strftime(
-        "%d-%m-%Y %I:%M %p"
+    new_ip = is_new_ip(
+        username,
+        ip_address
     )
 
-    # ==================================================
-    # PREVIOUS LOGIN CHECK
-    # ==================================================
 
-    conn = get_db()
-
-    previous_login = conn.execute(
-        """
-        SELECT
-            ip_address,
-            device,
-            timestamp,
-            status
-
-        FROM login_history
-
-        WHERE username = ?
-
-        AND status = 'Success'
-
-        ORDER BY id DESC
-
-        LIMIT 1
-        """,
-        (username,)
-    ).fetchone()
-
-    conn.close()
-
-    # Default risk signals
-    new_ip = False
-    new_device = False
-    unusual_time = False
-    unusual_location = False
-    failed_attempts = 0
-
-    # --------------------------------------------------
-    # COMPARE PREVIOUS LOGIN
-    # --------------------------------------------------
-
-    if previous_login:
-
-        previous_ip = previous_login["ip_address"]
-
-        previous_device = previous_login["device"]
-
-        if (
-            previous_ip
-            and previous_ip != ip_address
-        ):
-
-            new_ip = True
-
-        if (
-            previous_device
-            and previous_device != device
-        ):
-
-            new_device = True
-
-    # ==================================================
-    # RISK ENGINE
-    # ==================================================
-
-    try:
-
-        risk_result = calculate_risk(
-
-            new_device=new_device,
-
-            new_ip=new_ip,
-
-            unusual_time=unusual_time,
-
-            failed_attempts=failed_attempts,
-
-            unusual_location=unusual_location
-
+    unusual_time = (
+        is_unusual_login_time(
+            username
         )
+    )
 
-        risk_score = risk_result.get(
-            "score",
-            0
+
+    failed_attempts = (
+        get_recent_failed_attempts(
+            username
         )
+    )
 
-        risk_level = risk_result.get(
-            "level",
-            "LOW"
-        )
 
-        risk_reasons = risk_result.get(
-            "reasons",
-            []
-        )
+    risk = calculate_risk(
+        new_device=new_device,
+        new_ip=new_ip,
+        unusual_time=unusual_time,
+        failed_attempts=failed_attempts,
+        unusual_location=False
+    )
 
-    except Exception:
 
-        app.logger.exception(
-            "Risk engine error"
-        )
+    risk_score = risk["score"]
 
-        risk_score = 0
-        risk_level = "LOW"
-        risk_reasons = []
+    risk_level = risk["level"]
 
-    # ==================================================
-    # CREATE RISK OBJECT
-    # ==================================================
+    risk_reasons = risk["reasons"]
 
-    risk = {
-        "score": risk_score,
-        "level": risk_level,
-        "reasons": risk_reasons
-    }
 
-    # ==================================================
-    # SAVE SESSION
-    # ==================================================
+    print(
+        "RISK SCORE:",
+        risk_score
+    )
 
-    session.clear()
+    print(
+        "RISK LEVEL:",
+        risk_level
+    )
 
-    session["user_id"] = user["id"]
+    print(
+        "RISK REASONS:",
+        risk_reasons
+    )
 
-    session["username"] = user["username"]
+
+    # =====================================================
+    # SAVE SESSION INFORMATION
+    # =====================================================
+
+    session["username"] = username
+
+    session["new_device"] = new_device
+
+    session["device_status"] = (
+        "NEW DEVICE DETECTED"
+        if new_device
+        else "RECOGNIZED DEVICE"
+    )
 
     session["risk_score"] = risk_score
 
@@ -636,248 +1254,373 @@ def login():
 
     session["risk_reasons"] = risk_reasons
 
-    # ==================================================
-    # RECORD SUCCESSFUL LOGIN
-    # ==================================================
+    session["pending_ip"] = ip_address
 
-    record_attempt(
-        username,
-        "Success"
-    )
-
-    # ==================================================
-    # DIRECT DASHBOARD
-    # ==================================================
-
-    return render_template(
-
-        "dashboard.html",
-
-        username=user["username"],
-
-        ip_address=ip_address,
-
-        ip=ip_address,
-
-        device=device_display,
-
-        login_time=login_time,
-
-        risk=risk,
-
-        risk_score=risk_score,
-
-        risk_level=risk_level,
-
-        risk_reasons=risk_reasons,
-
-        history=get_login_history(username)
-
-    )
+    session["pending_device"] = device
 
 
-# ==================================================
-# GET LOGIN HISTORY
-# ==================================================
+    # =====================================================
+    # LOW RISK LOGIN
+    # =====================================================
 
-def get_login_history(username):
+    if risk_level == "LOW":
 
-    conn = get_db()
-
-    try:
-
-        history = conn.execute(
-            """
-            SELECT
-                username,
-                ip_address,
-                device,
-                status,
-                timestamp
-
-            FROM login_history
-
-            WHERE username = ?
-
-            ORDER BY id DESC
-
-            LIMIT 20
-            """,
-            (username,)
-        ).fetchall()
-
-        return history
-
-    except sqlite3.Error as error:
-
-        app.logger.error(
-            f"History error: {error}"
+        record_attempt(
+            username,
+            "SUCCESS",
+            ip_address,
+            device,
+            risk_score,
+            risk_level
         )
 
-        return []
 
-    finally:
+        return redirect(
+            url_for("dashboard")
+        )
+
+
+    # =====================================================
+    # MEDIUM / HIGH RISK → OTP
+    # =====================================================
+
+    phone = user["phone"]
+
+
+    if not phone:
+
+        return render_template(
+            "login.html",
+            error=(
+                "Additional verification "
+                "is required, but no "
+                "registered phone number "
+                "is available."
+            )
+        )
+
+
+    if user["phone_verified"] != 1:
+
+        return render_template(
+            "login.html",
+            error=(
+                "Your registered phone "
+                "number is not verified."
+            )
+        )
+
+
+    if send_otp(phone):
+
+        session["otp_username"] = username
+
+        session["otp_ip"] = ip_address
+
+        session["otp_device"] = device
+
+
+        return redirect(
+            url_for("verify_otp_page")
+        )
+
+
+    return render_template(
+        "login.html",
+        error=(
+            "Unable to send OTP. "
+            "Please try again."
+        )
+    )
+
+
+# =========================================================
+# VERIFY LOGIN OTP
+# =========================================================
+
+@app.route(
+    "/verify-otp",
+    methods=["GET", "POST"]
+)
+def verify_otp_page():
+
+    username = session.get(
+        "otp_username"
+    )
+
+
+    if not username:
+
+        return redirect(
+            url_for("login")
+        )
+
+
+    if request.method == "POST":
+
+        otp = request.form.get(
+            "otp"
+        )
+
+
+        conn = get_db()
+
+        cursor = conn.cursor()
+
+
+        user = cursor.execute("""
+            SELECT *
+            FROM users
+            WHERE username = ?
+        """, (username,)).fetchone()
+
 
         conn.close()
 
 
-# ==================================================
+        if not user:
+
+            return redirect(
+                url_for("login")
+            )
+
+
+        phone = user["phone"]
+
+
+        if verify_otp(
+            phone,
+            otp
+        ):
+
+            ip_address = session.get(
+                "otp_ip",
+                "Unknown"
+            )
+
+
+            device = session.get(
+                "otp_device",
+                "Unknown"
+            )
+
+
+            risk_score = session.get(
+                "risk_score",
+                0
+            )
+
+
+            risk_level = session.get(
+                "risk_level",
+                "LOW"
+            )
+
+
+            record_attempt(
+                username,
+                "SUCCESS",
+                ip_address,
+                device,
+                risk_score,
+                risk_level
+            )
+
+
+            session.pop(
+                "otp_username",
+                None
+            )
+
+            session.pop(
+                "otp_ip",
+                None
+            )
+
+            session.pop(
+                "otp_device",
+                None
+            )
+
+
+            return redirect(
+                url_for("dashboard")
+            )
+
+
+        return render_template(
+            "verify_otp.html",
+            error=(
+                "Invalid OTP. "
+                "Please try again."
+            )
+        )
+
+
+    return render_template(
+        "verify_otp.html"
+    )
+
+
+# =========================================================
 # DASHBOARD
-# ==================================================
+# =========================================================
 
 @app.route("/dashboard")
-@login_required
 def dashboard():
 
-    username = session.get(
+    if "username" not in session:
+
+        return redirect(
+            url_for("login")
+        )
+
+
+    username = session[
         "username"
-    )
+    ]
 
-    history = get_login_history(
-        username
-    )
 
-    # --------------------------------------------------
-    # GET LATEST LOGIN
-    # --------------------------------------------------
+    conn = get_db()
 
-    latest_login = None
+    cursor = conn.cursor()
 
-    if history:
 
-        latest_login = history[0]
+    # CURRENT LOGIN
+    current_login = cursor.execute("""
+        SELECT *
+        FROM login_history
+        WHERE username = ?
+        AND status = 'SUCCESS'
+        ORDER BY id DESC
+        LIMIT 1
+    """, (username,)).fetchone()
 
-    if latest_login:
 
-        ip_address = latest_login["ip_address"]
+    # LOGIN HISTORY
+    history = cursor.execute("""
+        SELECT *
+        FROM login_history
+        WHERE username = ?
+        ORDER BY id DESC
+        LIMIT 10
+    """, (username,)).fetchall()
 
-        device = latest_login["device"]
 
-        raw_timestamp = latest_login["timestamp"]
+    conn.close()
 
-        try:
 
-            parsed_time = time.strptime(
-                raw_timestamp,
-                "%Y-%m-%d %H:%M:%S"
-            )
+    if current_login:
 
-            login_time = time.strftime(
-                "%d-%m-%Y %I:%M %p",
-                parsed_time
-            )
+        current_ip = (
+            current_login["ip_address"]
+        )
 
-        except Exception:
+        current_login_time = (
+            current_login["login_time"]
+        )
 
-            login_time = raw_timestamp
+        current_device = (
+            current_login["device"]
+        )
+
 
     else:
 
-        ip_address = "Unknown"
+        current_ip = "Unknown"
 
-        device = "Unknown Device"
+        current_login_time = "Unknown"
 
-        login_time = "Unknown"
+        current_device = "Unknown"
 
-    # --------------------------------------------------
-    # RISK FROM SESSION
-    # --------------------------------------------------
 
     risk_score = session.get(
         "risk_score",
         0
     )
 
+
     risk_level = session.get(
         "risk_level",
         "LOW"
     )
+
 
     risk_reasons = session.get(
         "risk_reasons",
         []
     )
 
-    risk = {
-        "score": risk_score,
-        "level": risk_level,
-        "reasons": risk_reasons
-    }
 
-    # --------------------------------------------------
-    # RENDER DASHBOARD
-    # --------------------------------------------------
+    new_device = session.get(
+        "new_device",
+        False
+    )
+
+
+    if new_device:
+
+        device_status = (
+            "NEW DEVICE DETECTED"
+        )
+
+    else:
+
+        device_status = (
+            "RECOGNIZED DEVICE"
+        )
+
 
     return render_template(
-
         "dashboard.html",
 
         username=username,
 
-        ip_address=ip_address,
+        current_ip=current_ip,
 
-        ip=ip_address,
+        current_login_time=(
+            current_login_time
+        ),
 
-        device=device,
+        current_device=(
+            current_device
+        ),
 
-        login_time=login_time,
+        new_device=new_device,
 
-        history=history,
-
-        risk=risk,
+        device_status=(
+            device_status
+        ),
 
         risk_score=risk_score,
 
         risk_level=risk_level,
 
-        risk_reasons=risk_reasons
+        risk_reasons=(
+            risk_reasons
+        ),
 
+        history=history
     )
 
 
-# ==================================================
-# SUCCESS PAGE
-# ==================================================
-
-@app.route("/success")
-@login_required
-def success():
-
-    return render_template(
-
-        "success.html",
-
-        username=session.get(
-            "username"
-        )
-
-    )
-
-
-# ==================================================
+# =========================================================
 # LOGOUT
-# ==================================================
+# =========================================================
 
-@app.route(
-    "/logout",
-    methods=["GET", "POST"]
-)
+@app.route("/logout")
 def logout():
 
     session.clear()
-
-    flash(
-        "You have been logged out."
-    )
 
     return redirect(
         url_for("login")
     )
 
 
-# ==================================================
+# =========================================================
 # START APPLICATION
-# ==================================================
+# =========================================================
 
 if __name__ == "__main__":
 

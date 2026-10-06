@@ -1,4 +1,3 @@
-
 def calculate_risk(
     new_device=False,
     new_ip=False,
@@ -6,55 +5,50 @@ def calculate_risk(
     failed_attempts=0,
     unusual_location=False
 ):
-    score = 0
+    risk_score = 0
     reasons = []
 
+    # New device
     if new_device:
-        score += 25
-        reasons.append("Login from a new device (+25)")
+        risk_score += 15
+        reasons.append("Login from a new device")
 
+    # New IP
     if new_ip:
-        score += 20
-        reasons.append("Login from a new IP address (+20)")
+        risk_score += 10
+        reasons.append("Login from a new IP address")
 
+    # Unusual login time
     if unusual_time:
-        score += 15
-        reasons.append("Login at an unusual time (+15)")
+        risk_score += 15
+        reasons.append("Login at an unusual time")
 
-    if failed_attempts >= 5:
-        score += 30
+    # Failed login attempts
+    if failed_attempts >= 3:
+        risk_score += 25
         reasons.append(
-            f"{failed_attempts} failed login attempts in the last 24 hours (+30)"
-        )
-    elif failed_attempts >= 3:
-        score += 20
-        reasons.append(
-            f"{failed_attempts} failed login attempts in the last 24 hours (+20)"
-        )
-    elif failed_attempts >= 1:
-        score += 10
-        reasons.append(
-            f"{failed_attempts} failed login attempt(s) in the last 24 hours (+10)"
+            "Multiple failed login attempts"
         )
 
+    # Unusual location
     if unusual_location:
-        score += 25
-        reasons.append("Login from an unusual location (+25)")
+        risk_score += 20
+        reasons.append(
+            "Unusual login location"
+        )
 
-    score = min(score, 100)
+    # Risk level
+    if risk_score <= 20:
+        risk_level = "LOW"
 
-    if score >= 60:
-        level = "HIGH"
-    elif score >= 30:
-        level = "MEDIUM"
+    elif risk_score <= 50:
+        risk_level = "MEDIUM"
+
     else:
-        level = "LOW"
-
-    if not reasons:
-        reasons.append("No risk indicators detected")
+        risk_level = "HIGH"
 
     return {
-        "score": score,
-        "level": level,
+        "score": risk_score,
+        "level": risk_level,
         "reasons": reasons
     }
