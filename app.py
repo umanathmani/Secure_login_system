@@ -27,6 +27,15 @@ bcrypt = Bcrypt(app)
 
 
 # =========================================================
+# HOME PAGE
+# =========================================================
+
+@app.route("/")
+def home():
+    return redirect(url_for("login"))
+
+
+# =========================================================
 # TWILIO CONFIGURATION
 # =========================================================
 
@@ -80,7 +89,6 @@ def init_db():
 
     cursor = conn.cursor()
 
-
     # USERS TABLE
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -100,7 +108,6 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
-
 
     # LOGIN HISTORY TABLE
     cursor.execute("""
@@ -124,18 +131,15 @@ def init_db():
         )
     """)
 
-
     # CHECK USERS TABLE COLUMNS
     columns = cursor.execute(
         "PRAGMA table_info(users)"
     ).fetchall()
 
-
     column_names = [
         column["name"]
         for column in columns
     ]
-
 
     # ADD ACCOUNT LOCK COLUMN
     if "is_locked" not in column_names:
@@ -144,7 +148,6 @@ def init_db():
             ALTER TABLE users
             ADD COLUMN is_locked INTEGER DEFAULT 0
         """)
-
 
     conn.commit()
 
@@ -168,11 +171,9 @@ def record_attempt(
 
     cursor = conn.cursor()
 
-
     login_time = datetime.now().strftime(
         "%Y-%m-%d %H:%M:%S"
     )
-
 
     cursor.execute("""
         INSERT INTO login_history
@@ -197,7 +198,6 @@ def record_attempt(
         risk_level
     ))
 
-
     conn.commit()
 
     conn.close()
@@ -213,7 +213,6 @@ def get_recent_failed_attempts(username):
 
     cursor = conn.cursor()
 
-
     # Latest successful login OR account recovery
     last_reset = cursor.execute("""
         SELECT id
@@ -223,7 +222,6 @@ def get_recent_failed_attempts(username):
         ORDER BY id DESC
         LIMIT 1
     """, (username,)).fetchone()
-
 
     if last_reset:
 
@@ -238,7 +236,6 @@ def get_recent_failed_attempts(username):
             last_reset["id"]
         )).fetchone()[0]
 
-
     else:
 
         failed_count = cursor.execute("""
@@ -247,7 +244,6 @@ def get_recent_failed_attempts(username):
             WHERE username = ?
             AND status = 'FAILED'
         """, (username,)).fetchone()[0]
-
 
     conn.close()
 
@@ -267,7 +263,6 @@ def is_new_device(
 
     cursor = conn.cursor()
 
-
     previous_login = cursor.execute("""
         SELECT device
         FROM login_history
@@ -277,14 +272,11 @@ def is_new_device(
         LIMIT 1
     """, (username,)).fetchone()
 
-
     conn.close()
-
 
     if not previous_login:
 
         return True
-
 
     return (
         previous_login["device"]
@@ -305,7 +297,6 @@ def is_new_ip(
 
     cursor = conn.cursor()
 
-
     previous_login = cursor.execute("""
         SELECT ip_address
         FROM login_history
@@ -315,14 +306,11 @@ def is_new_ip(
         LIMIT 1
     """, (username,)).fetchone()
 
-
     conn.close()
-
 
     if not previous_login:
 
         return True
-
 
     return (
         previous_login["ip_address"]
@@ -340,7 +328,6 @@ def is_unusual_login_time(username):
 
     cursor = conn.cursor()
 
-
     previous_login = cursor.execute("""
         SELECT login_time
         FROM login_history
@@ -350,14 +337,11 @@ def is_unusual_login_time(username):
         LIMIT 1
     """, (username,)).fetchone()
 
-
     conn.close()
-
 
     if not previous_login:
 
         return False
-
 
     try:
 
@@ -366,28 +350,22 @@ def is_unusual_login_time(username):
             "%Y-%m-%d %H:%M:%S"
         )
 
-
         current_time = datetime.now()
-
 
         previous_hour = previous_time.hour
 
         current_hour = current_time.hour
 
-
         hour_difference = abs(
             current_hour - previous_hour
         )
-
 
         hour_difference = min(
             hour_difference,
             24 - hour_difference
         )
 
-
         return hour_difference > 2
-
 
     except Exception:
 
@@ -403,7 +381,6 @@ def send_otp(phone):
     if not twilio_client:
 
         return False
-
 
     try:
 
@@ -421,12 +398,10 @@ def send_otp(phone):
             )
         )
 
-
         return (
             verification.status
             == "pending"
         )
-
 
     except Exception as e:
 
@@ -451,7 +426,6 @@ def verify_otp(
 
         return False
 
-
     try:
 
         verification_check = (
@@ -468,12 +442,10 @@ def verify_otp(
             )
         )
 
-
         return (
             verification_check.status
             == "approved"
         )
-
 
     except Exception as e:
 
@@ -513,7 +485,6 @@ def register():
             "password"
         )
 
-
         if not username or not password:
 
             return render_template(
@@ -524,11 +495,9 @@ def register():
                 )
             )
 
-
         conn = get_db()
 
         cursor = conn.cursor()
-
 
         existing_user = cursor.execute("""
             SELECT *
@@ -536,11 +505,9 @@ def register():
             WHERE username = ?
         """, (username,)).fetchone()
 
-
         if existing_user:
 
             conn.close()
-
 
             return render_template(
                 "register.html",
@@ -549,7 +516,6 @@ def register():
                 )
             )
 
-
         hashed_password = (
             bcrypt
             .generate_password_hash(
@@ -557,7 +523,6 @@ def register():
             )
             .decode("utf-8")
         )
-
 
         cursor.execute("""
             INSERT INTO users
@@ -578,11 +543,9 @@ def register():
             phone
         ))
 
-
         conn.commit()
 
         conn.close()
-
 
         session[
             "registration_username"
@@ -591,7 +554,6 @@ def register():
         session[
             "registration_phone"
         ] = phone
-
 
         if phone:
 
@@ -603,7 +565,6 @@ def register():
                     )
                 )
 
-
             return render_template(
                 "register.html",
                 error=(
@@ -613,11 +574,9 @@ def register():
                 )
             )
 
-
         return redirect(
             url_for("login")
         )
-
 
     return render_template(
         "register.html"
@@ -642,20 +601,17 @@ def verify_registration():
         "registration_phone"
     )
 
-
     if not username or not phone:
 
         return redirect(
             url_for("register")
         )
 
-
     if request.method == "POST":
 
         otp = request.form.get(
             "otp"
         )
-
 
         if verify_otp(
             phone,
@@ -666,18 +622,15 @@ def verify_registration():
 
             cursor = conn.cursor()
 
-
             cursor.execute("""
                 UPDATE users
                 SET phone_verified = 1
                 WHERE username = ?
             """, (username,))
 
-
             conn.commit()
 
             conn.close()
-
 
             session.pop(
                 "registration_username",
@@ -689,17 +642,14 @@ def verify_registration():
                 None
             )
 
-
             return redirect(
                 url_for("login")
             )
-
 
         return render_template(
             "verify_registration.html",
             error="Invalid OTP."
         )
-
 
     return render_template(
         "verify_registration.html"
@@ -722,11 +672,9 @@ def recover():
             "username"
         )
 
-
         conn = get_db()
 
         cursor = conn.cursor()
-
 
         user = cursor.execute("""
             SELECT *
@@ -734,9 +682,7 @@ def recover():
             WHERE username = ?
         """, (username,)).fetchone()
 
-
         conn.close()
-
 
         if not user:
 
@@ -744,7 +690,6 @@ def recover():
                 "recover.html",
                 error="Username not found."
             )
-
 
         if not user["phone"]:
 
@@ -756,7 +701,6 @@ def recover():
                 )
             )
 
-
         if user["phone_verified"] != 1:
 
             return render_template(
@@ -767,7 +711,6 @@ def recover():
                 )
             )
 
-
         if send_otp(
             user["phone"]
         ):
@@ -776,13 +719,11 @@ def recover():
                 "recovery_username"
             ] = username
 
-
             return redirect(
                 url_for(
                     "recovery_otp"
                 )
             )
-
 
         return render_template(
             "recover.html",
@@ -791,7 +732,6 @@ def recover():
                 "Please try again."
             )
         )
-
 
     return render_template(
         "recover.html"
@@ -812,18 +752,15 @@ def recovery_otp():
         "recovery_username"
     )
 
-
     if not username:
 
         return redirect(
             url_for("recover")
         )
 
-
     conn = get_db()
 
     cursor = conn.cursor()
-
 
     user = cursor.execute("""
         SELECT *
@@ -831,9 +768,7 @@ def recovery_otp():
         WHERE username = ?
     """, (username,)).fetchone()
 
-
     conn.close()
-
 
     if not user:
 
@@ -846,13 +781,11 @@ def recovery_otp():
             url_for("recover")
         )
 
-
     if request.method == "POST":
 
         otp = request.form.get(
             "otp"
         )
-
 
         # VERIFY RECOVERY OTP
         if verify_otp(
@@ -864,7 +797,6 @@ def recovery_otp():
 
             cursor = conn.cursor()
 
-
             # UNLOCK ACCOUNT
             cursor.execute("""
                 UPDATE users
@@ -872,14 +804,12 @@ def recovery_otp():
                 WHERE username = ?
             """, (username,))
 
-
             # CHECK WHETHER UPDATE ACTUALLY HAPPENED
             updated_user = cursor.execute("""
                 SELECT is_locked
                 FROM users
                 WHERE username = ?
             """, (username,)).fetchone()
-
 
             if not updated_user:
 
@@ -893,7 +823,6 @@ def recovery_otp():
                     )
                 )
 
-
             if updated_user["is_locked"] != 0:
 
                 conn.close()
@@ -906,12 +835,10 @@ def recovery_otp():
                     )
                 )
 
-
             # RECORD RECOVERY RESET
             recovery_time = datetime.now().strftime(
                 "%Y-%m-%d %H:%M:%S"
             )
-
 
             cursor.execute("""
                 INSERT INTO login_history
@@ -936,18 +863,15 @@ def recovery_otp():
                 "LOW"
             ))
 
-
             conn.commit()
 
             conn.close()
-
 
             # CLEAR RECOVERY SESSION
             session.pop(
                 "recovery_username",
                 None
             )
-
 
             # CLEAR OLD LOGIN SESSION DATA
             session.pop(
@@ -980,17 +904,14 @@ def recovery_otp():
                 None
             )
 
-
             print(
                 "ACCOUNT RECOVERED:",
                 username
             )
 
-
             return redirect(
                 url_for("login")
             )
-
 
         return render_template(
             "verify_otp.html",
@@ -999,7 +920,6 @@ def recovery_otp():
                 "Please try again."
             )
         )
-
 
     return render_template(
         "verify_otp.html"
@@ -1022,7 +942,6 @@ def login():
             "login.html"
         )
 
-
     username = request.form.get(
         "username"
     )
@@ -1031,23 +950,19 @@ def login():
         "password"
     )
 
-
     ip_address = (
         request.remote_addr
         or "Unknown"
     )
-
 
     device = request.headers.get(
         "User-Agent",
         "Unknown"
     )
 
-
     conn = get_db()
 
     cursor = conn.cursor()
-
 
     user = cursor.execute("""
         SELECT *
@@ -1055,9 +970,7 @@ def login():
         WHERE username = ?
     """, (username,)).fetchone()
 
-
     conn.close()
-
 
     if not user:
 
@@ -1068,7 +981,6 @@ def login():
             device
         )
 
-
         return render_template(
             "login.html",
             error=(
@@ -1076,7 +988,6 @@ def login():
                 "or password."
             )
         )
-
 
     # =====================================================
     # CHECK LOCKED ACCOUNT
@@ -1092,7 +1003,6 @@ def login():
             )
         )
 
-
     # =====================================================
     # CHECK PASSWORD
     # =====================================================
@@ -1103,7 +1013,6 @@ def login():
             password
         )
     )
-
 
     # =====================================================
     # WRONG PASSWORD
@@ -1118,19 +1027,16 @@ def login():
             device
         )
 
-
         failed_attempts = (
             get_recent_failed_attempts(
                 username
             )
         )
 
-
         print(
             "FAILED ATTEMPTS:",
             failed_attempts
         )
-
 
         # LOCK AFTER 5 FAILED ATTEMPTS
         if failed_attempts >= 5:
@@ -1139,18 +1045,15 @@ def login():
 
             cursor = conn.cursor()
 
-
             cursor.execute("""
                 UPDATE users
                 SET is_locked = 1
                 WHERE username = ?
             """, (username,))
 
-
             conn.commit()
 
             conn.close()
-
 
             return render_template(
                 "login.html",
@@ -1161,7 +1064,6 @@ def login():
                 )
             )
 
-
         return render_template(
             "login.html",
             error=(
@@ -1170,7 +1072,6 @@ def login():
                 f"{failed_attempts}/5"
             )
         )
-
 
     # =====================================================
     # RISK ANALYSIS
@@ -1181,12 +1082,10 @@ def login():
         device
     )
 
-
     new_ip = is_new_ip(
         username,
         ip_address
     )
-
 
     unusual_time = (
         is_unusual_login_time(
@@ -1194,13 +1093,11 @@ def login():
         )
     )
 
-
     failed_attempts = (
         get_recent_failed_attempts(
             username
         )
     )
-
 
     risk = calculate_risk(
         new_device=new_device,
@@ -1210,13 +1107,11 @@ def login():
         unusual_location=False
     )
 
-
     risk_score = risk["score"]
 
     risk_level = risk["level"]
 
     risk_reasons = risk["reasons"]
-
 
     print(
         "RISK SCORE:",
@@ -1232,7 +1127,6 @@ def login():
         "RISK REASONS:",
         risk_reasons
     )
-
 
     # =====================================================
     # SAVE SESSION INFORMATION
@@ -1258,7 +1152,6 @@ def login():
 
     session["pending_device"] = device
 
-
     # =====================================================
     # LOW RISK LOGIN
     # =====================================================
@@ -1274,18 +1167,15 @@ def login():
             risk_level
         )
 
-
         return redirect(
             url_for("dashboard")
         )
-
 
     # =====================================================
     # MEDIUM / HIGH RISK → OTP
     # =====================================================
 
     phone = user["phone"]
-
 
     if not phone:
 
@@ -1299,7 +1189,6 @@ def login():
             )
         )
 
-
     if user["phone_verified"] != 1:
 
         return render_template(
@@ -1310,7 +1199,6 @@ def login():
             )
         )
 
-
     if send_otp(phone):
 
         session["otp_username"] = username
@@ -1319,11 +1207,9 @@ def login():
 
         session["otp_device"] = device
 
-
         return redirect(
             url_for("verify_otp_page")
         )
-
 
     return render_template(
         "login.html",
@@ -1348,13 +1234,11 @@ def verify_otp_page():
         "otp_username"
     )
 
-
     if not username:
 
         return redirect(
             url_for("login")
         )
-
 
     if request.method == "POST":
 
@@ -1362,11 +1246,9 @@ def verify_otp_page():
             "otp"
         )
 
-
         conn = get_db()
 
         cursor = conn.cursor()
-
 
         user = cursor.execute("""
             SELECT *
@@ -1374,9 +1256,7 @@ def verify_otp_page():
             WHERE username = ?
         """, (username,)).fetchone()
 
-
         conn.close()
-
 
         if not user:
 
@@ -1384,9 +1264,7 @@ def verify_otp_page():
                 url_for("login")
             )
 
-
         phone = user["phone"]
-
 
         if verify_otp(
             phone,
@@ -1398,24 +1276,20 @@ def verify_otp_page():
                 "Unknown"
             )
 
-
             device = session.get(
                 "otp_device",
                 "Unknown"
             )
-
 
             risk_score = session.get(
                 "risk_score",
                 0
             )
 
-
             risk_level = session.get(
                 "risk_level",
                 "LOW"
             )
-
 
             record_attempt(
                 username,
@@ -1425,7 +1299,6 @@ def verify_otp_page():
                 risk_score,
                 risk_level
             )
-
 
             session.pop(
                 "otp_username",
@@ -1442,11 +1315,9 @@ def verify_otp_page():
                 None
             )
 
-
             return redirect(
                 url_for("dashboard")
             )
-
 
         return render_template(
             "verify_otp.html",
@@ -1455,7 +1326,6 @@ def verify_otp_page():
                 "Please try again."
             )
         )
-
 
     return render_template(
         "verify_otp.html"
@@ -1475,16 +1345,13 @@ def dashboard():
             url_for("login")
         )
 
-
     username = session[
         "username"
     ]
 
-
     conn = get_db()
 
     cursor = conn.cursor()
-
 
     # CURRENT LOGIN
     current_login = cursor.execute("""
@@ -1496,7 +1363,6 @@ def dashboard():
         LIMIT 1
     """, (username,)).fetchone()
 
-
     # LOGIN HISTORY
     history = cursor.execute("""
         SELECT *
@@ -1506,9 +1372,7 @@ def dashboard():
         LIMIT 10
     """, (username,)).fetchall()
 
-
     conn.close()
-
 
     if current_login:
 
@@ -1524,7 +1388,6 @@ def dashboard():
             current_login["device"]
         )
 
-
     else:
 
         current_ip = "Unknown"
@@ -1533,30 +1396,25 @@ def dashboard():
 
         current_device = "Unknown"
 
-
     risk_score = session.get(
         "risk_score",
         0
     )
-
 
     risk_level = session.get(
         "risk_level",
         "LOW"
     )
 
-
     risk_reasons = session.get(
         "risk_reasons",
         []
     )
 
-
     new_device = session.get(
         "new_device",
         False
     )
-
 
     if new_device:
 
@@ -1569,7 +1427,6 @@ def dashboard():
         device_status = (
             "RECOGNIZED DEVICE"
         )
-
 
     return render_template(
         "dashboard.html",
