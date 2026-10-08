@@ -495,6 +495,19 @@ def register():
                 )
             )
 
+        # =====================================================
+        # EMAIL FIX
+        # Register page does not have an email field.
+        # Therefore, use a unique internal email value.
+        # =====================================================
+
+        if not email:
+
+            email = (
+                username.lower()
+                + "@secure-login.local"
+            )
+
         conn = get_db()
 
         cursor = conn.cursor()
